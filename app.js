@@ -230,6 +230,7 @@ async function renderMessages() {
   $("chatMessages").innerHTML = msgs.map(m => createMessageEl(m, m.versions?.length ? m.versions.length - 1 : undefined)).join("");
   highlightCode();
   attachMessageActions();
+  updateMsgNav();
 }
 
 
@@ -347,6 +348,45 @@ async function regenerateMessage(msgId) {
   await renderMessages(); scrollToBottom();
 }
 
+
+function updateMsgNav() {
+  if (!state.currentConvId) { $("btnMsgNav").style.display = "none"; return; }
+  const userMsgs = document.querySelectorAll(".message.user");
+  const btn = $("btnMsgNav");
+  btn.style.display = userMsgs.length > 1 ? "" : "none";
+  // Build nav list
+  const list = $("msgNavList");
+  let html = "";
+  userMsgs.forEach((el, i) => {
+    const body = el.querySelector(".message-body");
+    const text = (body?.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40);
+    html += `<div class="msg-nav-item" data-target="${el.dataset.id}"><span class="nav-num">${i+1}</span>${text || "..."}</div>`;
+  });
+  list.innerHTML = html;
+  list.querySelectorAll(".msg-nav-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const targetId = item.dataset.target;
+      const targetEl = document.querySelector(`.message[data-id="${targetId}"]`);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        targetEl.classList.add("flash-highlight");
+        setTimeout(() => targetEl.classList.remove("flash-highlight"), 700);
+      }
+      $("msgNavPopup").style.display = "none";
+    });
+  });
+}
+
+// Add navigation toggle
+function toggleMsgNav() {
+  const popup = $("msgNavPopup");
+  if (popup.style.display === "none") {
+    updateMsgNav();
+    popup.style.display = "flex";
+  } else {
+    popup.style.display = "none";
+  }
+}
 function checkAutoScroll() {
   const area = $("chatArea");
   const dist = area.scrollHeight - area.scrollTop - area.clientHeight;
@@ -796,6 +836,16 @@ function init() {
   $("btnExportConv").addEventListener("click", exportConversation);
 
   // Auto-scroll
+  // Message navigation
+  $("btnMsgNav").addEventListener("click", toggleMsgNav);
+  $("btnCloseMsgNav").addEventListener("click", () => { $("msgNavPopup").style.display = "none"; });
+  // Close popup on outside click
+  document.addEventListener("click", (e) => {
+    if (!$("msgNavPopup").contains(e.target) && e.target !== $("btnMsgNav") && !$("btnMsgNav").contains(e.target)) {
+      $("msgNavPopup").style.display = "none";
+    }
+  });
+
   $("btnScrollBottom").addEventListener("click", scrollToBottom);
   $("chatArea").addEventListener("scroll", checkAutoScroll);
 
