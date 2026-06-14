@@ -768,7 +768,14 @@ function init() {
     if (e.key === "Enter" && e.ctrlKey) {
       return;
     }
-    if (e.key === "Enter") 
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const val = $("chatInput").value;
+      $("chatInput").value = "";
+      $("chatInput").style.height = "auto";
+      sendMessage(val);
+    }
+  });
   $("chatInput").addEventListener("input", () => {
     const el = $("chatInput");
     el.style.height = "auto";
