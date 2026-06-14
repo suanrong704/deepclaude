@@ -12,6 +12,14 @@ const state = {
   attachedFile: null,
 };
 
+const SVG_USER = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>';
+const SVG_AI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="16" r="6"/><circle cx="20" cy="10" r="4"/><circle cx="20" cy="22" r="3"/><line x1="15" y1="14" x2="18" y2="12"/><line x1="15" y1="18" x2="18" y2="20"/></svg>';
+const SVG_COPY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const SVG_REFRESH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+const SVG_EDIT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
+const SVG_SPEAK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+
+
 // ===== Theme =====
 function getTheme() { return localStorage.getItem("deepclaude_theme") || "auto"; }
 function setTheme(t) { localStorage.setItem("deepclaude_theme", t); applyTheme(); }
@@ -186,36 +194,30 @@ function highlightCode() {
   });
 }
 
-function createMessageEl(msg) {
+function createMessageEl(msg, versionIndex) {
   const isUser = msg.role === "user";
+  let content = msg.content;
+  if (!isUser && msg.versions?.length && versionIndex !== undefined) {
+    content = msg.versions[versionIndex].content;
+  }
+  let reasoning = null, answer = content;
+  if (!isUser && content.startsWith("__REASONING__")) {
+    const parts = content.split("__ANSWER__");
+    if (parts.length === 2) { reasoning = parts[0].replace("__REASONING__",""); answer = parts[1]; }
+  }
   let bodyHtml = "";
-  
-  // Check for reasoning content (stored as special prefix)
-  let reasoning = null;
-  let answer = msg.content;
-  if (!isUser && msg.content.startsWith("__REASONING__")) {
-    const parts = msg.content.split("__ANSWER__");
-    if (parts.length === 2) {
-      reasoning = parts[0].replace("__REASONING__", "");
-      answer = parts[1];
-    }
+  if (!isUser && msg.versions?.length && msg.versions.length > 1) {
+    const idx = versionIndex ?? msg.versions.length - 1;
+    bodyHtml += '<div class="version-nav"><button data-action="prev-version" data-id="' + msg.id + '"' + (idx===0?' disabled':'') + '>&#9664;</button><span>' + (idx+1) + '/' + msg.versions.length + '</span><button data-action="next-version" data-id="' + msg.id + '"' + (idx>=msg.versions.length-1?' disabled':'') + '>&#9654;</button></div>';
   }
-  
   if (reasoning) {
-    bodyHtml += `<details class="reasoning-block" open>
-      <summary>\ud83e\udde0 \u6df1\u5ea6\u601d\u8003\u8fc7\u7a0b</summary>
-      <div class="reasoning-content">${renderMarkdown(reasoning)}</div>
-    </details>`;
+    bodyHtml += '<details class="reasoning-block" open><summary>🧠 \u6df1\u5ea6\u601d\u8003\u8fc7\u7a0b</summary><div class="reasoning-content">' + renderMarkdown(reasoning) + '</div></details>';
   }
-  bodyHtml += renderMarkdown(answer);
-  
-  return `<div class="message ${isUser ? 'user' : 'assistant'}" data-id="${msg.id}">
-    <div class="message-avatar">${isUser
-      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>'
-      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="16" r="6"/><circle cx="20" cy="10" r="4"/><circle cx="20" cy="22" r="3"/><line x1="15" y1="14" x2="18" y2="12"/><line x1="15" y1="18" x2="18" y2="20"/></svg>'
-    }</div>
-    <div class="message-body">${bodyHtml}</div>
-  </div>`;
+  bodyHtml += wrapCodeBlocks(renderMarkdown(answer));
+  const actionsHtml = isUser
+    ? '<button class="message-action-btn" data-action="edit-msg" data-id="' + msg.id + '">' + SVG_EDIT + ' \u7f16\u8f91</button>'
+    : '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + ' \u590d\u5236</button><button class="message-action-btn" data-action="regenerate" data-id="' + msg.id + '">' + SVG_REFRESH + ' \u91cd\u65b0\u751f\u6210</button><button class="message-action-btn" data-action="speak-msg" data-id="' + msg.id + '">' + SVG_SPEAK + ' \u6717\u8bfb</button>';
+  return '<div class="message ' + (isUser?'user':'assistant') + '" data-id="' + msg.id + '"><div class="message-actions">' + actionsHtml + '</div><div class="message-avatar">' + (isUser ? SVG_USER : SVG_AI) + '</div><div class="message-body">' + bodyHtml + '</div></div>';
 }
 
 async function renderMessages() {
@@ -225,14 +227,177 @@ async function renderMessages() {
     return;
   }
   const msgs = await storage.getMessages(state.currentConvId);
-  $("chatMessages").innerHTML = msgs.map(createMessageEl).join("");
+  $("chatMessages").innerHTML = msgs.map(m => createMessageEl(m, m.versions?.length ? m.versions.length - 1 : undefined)).join("");
   highlightCode();
+  attachMessageActions();
 }
+
+
+function wrapCodeBlocks(html) {
+  return html.replace(/<pre>/g, '<div class="code-block-wrapper"><pre>').replace(/<\/pre>/g, '</pre><button class="code-copy-btn" title="复制代码">' + SVG_COPY + ' 复制</button></div>');
+}
+
+function attachMessageActions() {
+  document.querySelectorAll("[data-action=prev-version], [data-action=next-version]").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const msgId = btn.dataset.id;
+      const msgs = await storage.getMessages(state.currentConvId);
+      const msg = msgs.find(m => m.id === msgId);
+      if (!msg?.versions) return;
+      let curIdx = msg.versions.length - 1;
+      const msgEl = document.querySelector('.message[data-id="' + msgId + '"]');
+      const navText = msgEl?.querySelector(".version-nav span")?.textContent;
+      if (navText) {
+        const match = navText.match(/(\d+)\/(\d+)/);
+        if (match) curIdx = parseInt(match[1]) - 1;
+      }
+      const newIdx = btn.dataset.action === "prev-version" ? curIdx - 1 : curIdx + 1;
+      if (newIdx < 0 || newIdx >= msg.versions.length) return;
+      msgEl.outerHTML = createMessageEl(msg, newIdx);
+      highlightCode(); attachMessageActions();
+    });
+  });
+  document.querySelectorAll("[data-action=copy-msg]").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const msgEl = document.querySelector('.message[data-id="' + btn.dataset.id + '"]');
+      const text = msgEl?.querySelector(".message-body")?.textContent || "";
+      navigator.clipboard.writeText(text).then(() => showToast("已复制")).catch(() => showToast("复制失败"));
+    });
+  });
+  document.querySelectorAll("[data-action=regenerate]").forEach(btn => {
+    btn.addEventListener("click", async (e) => { e.stopPropagation(); await regenerateMessage(btn.dataset.id); });
+  });
+  document.querySelectorAll("[data-action=edit-msg]").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const msgs = await storage.getMessages(state.currentConvId);
+      const msg = msgs.find(m => m.id === btn.dataset.id);
+      if (!msg) return;
+      const newContent = prompt("编辑消息：", msg.content);
+      if (!newContent?.trim() || newContent === msg.content) return;
+      await storage.deleteAfterMessage(msg.id);
+      sendMessage(newContent.trim(), true);
+    });
+  });
+  document.querySelectorAll("[data-action=speak-msg]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const msgEl = document.querySelector('.message[data-id="' + btn.dataset.id + '"]');
+      let text = msgEl?.querySelector(".message-body")?.textContent || "";
+      if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); return; }
+      const u = new SpeechSynthesisUtterance(text.slice(0, 2000));
+      u.lang = "zh-CN"; u.rate = 1.1;
+      window.speechSynthesis.speak(u);
+    });
+  });
+  document.querySelectorAll(".code-copy-btn").forEach(btn => {
+    btn.onclick = function() {
+      const code = this.parentElement.querySelector("code").textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        this.textContent = "✔ 已复制"; this.classList.add("copied");
+        setTimeout(() => { this.innerHTML = SVG_COPY + ' 复制'; this.classList.remove("copied"); }, 2000);
+      }).catch(() => showToast("复制失败"));
+    };
+  });
+}
+
+async function regenerateMessage(msgId) {
+  if (state.isGenerating) return;
+  const msgs = await storage.getMessages(state.currentConvId);
+  const msg = msgs.find(m => m.id === msgId);
+  if (!msg || msg.role !== "assistant") return;
+  if (!msg.versions) msg.versions = [];
+  msg.versions.push({ content: msg.content, model: msg.model || "unknown", createdAt: Date.now() });
+  const msgIdx = msgs.findIndex(m => m.id === msgId);
+  let userMsg = null;
+  for (let i = msgIdx - 1; i >= 0; i--) { if (msgs[i].role === "user") { userMsg = msgs[i]; break; } }
+  if (!userMsg) { showToast("找不到对应的用户消息"); return; }
+  const savedVersions = [...msg.versions];
+  await storage.deleteAfterMessage(msgId);
+  const userContent = userMsg.content;
+  await storage.deleteAfterMessage(userMsg.id);
+  await storage.addMessage(state.currentConvId, "user", userContent);
+  await renderMessages();
+  await streamAIResponse(userContent);
+  const newMsgs = await storage.getMessages(state.currentConvId);
+  const lastAiMsg = newMsgs.filter(m => m.role === "assistant").pop();
+  if (lastAiMsg && savedVersions.length > 0) {
+    lastAiMsg.versions = savedVersions;
+    const msgStore = await storage._tx("messages", "readwrite");
+    await new Promise((res, rej) => { const r = msgStore.put(lastAiMsg); r.onsuccess = res; r.onerror = rej; });
+  }
+  await renderMessages(); scrollToBottom();
+}
+
+function checkAutoScroll() {
+  const area = $("chatArea");
+  const dist = area.scrollHeight - area.scrollTop - area.clientHeight;
+  $("btnScrollBottom").style.display = dist > 150 ? "" : "none";
+}
+
+async function generatePrompt() {
+  const requirement = $("promptRequirement").value.trim();
+  if (!requirement) { showToast("请输入需求描述"); return; }
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast("请先设置 API Key"); return; }
+  $("btnGeneratePrompt").disabled = true;
+  $("btnGeneratePrompt").textContent = "生成中...";
+  $("promptResult").style.display = "block";
+  $("promptResultContent").textContent = "";
+  try {
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
+      body: JSON.stringify({
+        model: "deepseek-v4-flash",
+        messages: [
+          { role: "system", content: "You are a prompt engineering expert. Based on the user requirements, generate a well-crafted, detailed prompt in the same language. Output ONLY the prompt, no explanations." },
+          { role: "user", content: requirement }
+        ],
+        stream: false, temperature: 0.7, max_tokens: 2048,
+      }),
+    });
+    if (!resp.ok) throw new Error("API error " + resp.status);
+    const data = await resp.json();
+    $("promptResultContent").textContent = data.choices?.[0]?.message?.content || "生成失败";
+  } catch (err) {
+    $("promptResultContent").textContent = "生成失败: " + err.message;
+  } finally {
+    $("btnGeneratePrompt").disabled = false;
+    $("btnGeneratePrompt").innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z"/></svg> 生成提示词';
+  }
+}
+
 
 function clearAttachment() {
   state.attachedFile = null;
   $("filePreview").style.display = "none";
   $("fileInput").value = "";
+}
+
+
+async function exportConversation() {
+  if (!state.currentConvId) return;
+  const msgs = await storage.getMessages(state.currentConvId);
+  const conv = allConvs.find(c => c.id === state.currentConvId);
+  let md = "# " + (conv?.title || "对话") + "\n\n";
+  msgs.forEach(m => {
+    const role = m.role === "user" ? "**You**" : "**DeepClaude**";
+    let content = m.content;
+    if (m.role === "assistant" && content.startsWith("__REASONING__")) {
+      const parts = content.split("__ANSWER__");
+      content = parts.length === 2 ? "> 深度思考：\n> " + parts[0].replace("__REASONING__","").replace(/\n/g,"\n> ") + "\n\n" + parts[1] : content;
+    }
+    md += role + "\n\n" + content + "\n\n---\n\n";
+  });
+  const blob = new Blob([md], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = (conv?.title||"conversation") + ".md"; a.click();
+  URL.revokeObjectURL(url);
+  showToast("导出成功");
 }
 
 // ===== Chat / API =====
@@ -392,10 +557,13 @@ async function sendMessage(userText) {
               <div class="reasoning-content">${renderMarkdown(reasoningContent)}</div>
             </details>`;
           }
-          displayHtml += renderMarkdown(fullContent);
+          displayHtml += wrapCodeBlocks(renderMarkdown(fullContent));
+          displayHtml += '<span class="streaming-cursor"></span>';
           bodyEl.innerHTML = displayHtml;
           highlightCode();
           scrollToBottom();
+          checkAutoScroll();
+          checkAutoScroll();
         } catch (e) { /* skip malformed JSON */ }
       }
     }
@@ -423,6 +591,7 @@ async function sendMessage(userText) {
     state.abortController = null;
     $("btnSend").disabled = false;
     $("btnStop").classList.remove("visible");
+    $("btnScrollBottom").style.display = "none";
     await renderMessages();
     scrollToBottom();
   }
@@ -552,17 +721,36 @@ function init() {
   });
 
   // Voice
+  // Prompt panel
+  $("btnPromptPanel").addEventListener("click", () => {
+    $("promptPanel").classList.toggle("open");
+    $("btnPromptPanel").classList.toggle("active", $("promptPanel").classList.contains("open"));
+  });
+  $("btnClosePrompt").addEventListener("click", () => {
+    $("promptPanel").classList.remove("open");
+    $("btnPromptPanel").classList.remove("active");
+  });
+  $("btnGeneratePrompt").addEventListener("click", generatePrompt);
+  $("btnCopyPrompt").addEventListener("click", () => {
+    const text = $("promptResultContent").textContent;
+    navigator.clipboard.writeText(text).then(() => showToast("提示词已复制")).catch(() => showToast("复制失败"));
+  });
+
+  // Export
+  $("btnExportConv").addEventListener("click", exportConversation);
+
+  // Auto-scroll
+  $("btnScrollBottom").addEventListener("click", scrollToBottom);
+  $("chatArea").addEventListener("scroll", checkAutoScroll);
+
   $("btnVoice").addEventListener("click", startVoice);
 
   // Send
-  $("btnSend").addEventListener("click", () => {
-    const val = $("chatInput").value;
-    $("chatInput").value = "";
-    $("chatInput").style.height = "auto";
-    sendMessage(val);
-  });
   $("chatInput").addEventListener("keydown", e => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && e.ctrlKey) {
+      return;
+    }
+    if (e.key === "Enter") {
       e.preventDefault();
       const val = $("chatInput").value;
       $("chatInput").value = "";
@@ -570,6 +758,17 @@ function init() {
       sendMessage(val);
     }
   });
+  $("btnSend").addEventListener("click", () => {
+    const val = $("chatInput").value;
+    $("chatInput").value = "";
+    $("chatInput").style.height = "auto";
+    sendMessage(val);
+  });
+  $("chatInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.ctrlKey) {
+      return;
+    }
+    if (e.key === "Enter") 
   $("chatInput").addEventListener("input", () => {
     const el = $("chatInput");
     el.style.height = "auto";
