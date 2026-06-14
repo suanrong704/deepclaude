@@ -110,10 +110,17 @@ body {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border);
-  transition: margin-left var(--transition);
+  transition: width var(--transition), min-width var(--transition), opacity var(--transition);
   z-index: 100;
 }
-.sidebar.collapsed { margin-left: calc(-1 * var(--sidebar-w)); }
+.sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  border: none;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
 
 .sidebar-header {
   padding: 12px 16px;
@@ -256,6 +263,17 @@ body {
   background: var(--bg-primary);
   flex-shrink: 0;
   justify-content: space-between;
+  position: relative;
+}
+.header::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #4d6bfe, #7c5cfc, transparent);
+  opacity: 0.6;
 }
 .btn-toggle-sidebar {
   background: none; border: none; cursor: pointer; color: var(--text-secondary);
@@ -295,13 +313,21 @@ body {
 .welcome {
   flex: 1;
   display: flex;
+  background: radial-gradient(ellipse at 50% 40%, var(--accent-light) 0%, transparent 60%);
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 40px 20px;
 }
-.welcome-logo { margin-bottom: 20px; }
+.welcome-logo {
+  margin-bottom: 20px;
+  animation: logo-float 3s ease-in-out infinite;
+}
+@keyframes logo-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
 .welcome h2 {
   font-size: 26px;
   font-weight: 700;
@@ -427,34 +453,75 @@ body {
   background: var(--bg-primary);
 }
 
-/* Option Chips (Deep Think + Web Search) */
+/* Model Switcher + Option Chips */
 .input-options {
   display: flex;
   gap: 8px;
   max-width: 768px;
   margin: 0 auto 8px;
 }
-.opt-chip {
-  padding: 5px 12px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
+/* Model Switcher */
+.model-switcher {
+  display: flex;
   background: var(--chip-bg);
+  border-radius: 20px;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border);
+}
+.model-btn {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.25s ease;
+  font-family: var(--font);
+}
+.model-btn:hover { color: var(--text-primary); }
+.model-btn.active {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.model-btn[data-model="flash"].active { color: #f59e0b; }
+.model-btn[data-model="flash"].active svg { color: #f59e0b; }
+.model-btn[data-model="pro"].active { color: #8b5cf6; }
+.model-btn[data-model="pro"].active svg { color: #8b5cf6; }
+
+/* Option Chips */
+.opt-chip {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg-secondary);
   color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
-  transition: all var(--transition);
+  gap: 6px;
+  transition: all 0.25s ease;
   font-family: var(--font);
   font-weight: 500;
 }
-.opt-chip:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-.opt-chip.active {
-  background: var(--chip-active-bg);
-  color: var(--chip-active-color);
-  border-color: var(--chip-active-border);
+.opt-chip:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--text-tertiary);
 }
+.opt-chip.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.opt-chip.active svg { color: #fff; }
 
 /* File Preview */
 .file-preview {
@@ -653,7 +720,14 @@ body {
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .sidebar { position: fixed; left: 0; top: 0; z-index: 200; box-shadow: var(--shadow-lg); }
-  .sidebar.collapsed { margin-left: calc(-1 * var(--sidebar-w)); }
+  .sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  border: none;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
   .chat-messages { padding: 16px; }
   .input-container { padding: 8px 12px 12px; }
   .message.user .message-body { max-width: 90%; }

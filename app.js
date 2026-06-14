@@ -4,7 +4,7 @@ const API_URL = "https://api.deepseek.com/v1/chat/completions";
 
 const state = {
   currentConvId: null,
-  deepThink: false,
+  model: "flash",       // flash | pro
   webSearch: false,
   isGenerating: false,
   sidebarVisible: true,
@@ -279,7 +279,7 @@ async function sendMessage(userText) {
 
   // System prompt
   let systemPrompt = "You are DeepClaude, a helpful AI assistant.";
-  if (state.deepThink) {
+  if (state.model === "pro") {
     systemPrompt += " Provide detailed reasoning before your final answer.";
   }
 
@@ -327,7 +327,7 @@ async function sendMessage(userText) {
   scrollToBottom();
 
   try {
-    const model = state.deepThink ? "deepseek-v4-pro" : "deepseek-v4-flash";
+    const model = state.model === "pro" ? "deepseek-v4-pro" : "deepseek-v4-flash";
     
     const resp = await fetch(API_URL, {
       method: "POST",
@@ -339,8 +339,8 @@ async function sendMessage(userText) {
         model,
         messages: apiMessages,
         stream: true,
-        temperature: state.deepThink ? 0.1 : 0.7,
-        max_tokens: state.deepThink ? 8192 : 4096,
+        temperature: state.model === "pro" ? 0.1 : 0.7,
+        max_tokens: state.model === "pro" ? 8192 : 4096,
       }),
       signal: state.abortController.signal,
     });
@@ -522,10 +522,13 @@ function init() {
   // New chat
   $("btnNewChat").addEventListener("click", newConversation);
 
-  // Deep Think toggle
-  $("btnDeepThink").addEventListener("click", () => {
-    state.deepThink = !state.deepThink;
-    $("btnDeepThink").classList.toggle("active", state.deepThink);
+  // Model switcher
+  document.querySelectorAll(".model-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".model-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.model = btn.dataset.model;
+    });
   });
 
   // Web search toggle
