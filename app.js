@@ -211,13 +211,13 @@ function createMessageEl(msg, versionIndex) {
     bodyHtml += '<div class="version-nav"><button data-action="prev-version" data-id="' + msg.id + '"' + (idx===0?' disabled':'') + '>&#9664;</button><span>' + (idx+1) + '/' + msg.versions.length + '</span><button data-action="next-version" data-id="' + msg.id + '"' + (idx>=msg.versions.length-1?' disabled':'') + '>&#9654;</button></div>';
   }
   if (reasoning) {
-    bodyHtml += '<details class="reasoning-block" open><summary>🧠 \u6df1\u5ea6\u601d\u8003\u8fc7\u7a0b</summary><div class="reasoning-content">' + renderMarkdown(reasoning) + '</div></details>';
+    bodyHtml += '<details class="reasoning-block"><summary>🧠 \u6df1\u5ea6\u601d\u8003\u8fc7\u7a0b</summary><div class="reasoning-content">' + renderMarkdown(reasoning) + '</div></details>';
   }
   bodyHtml += wrapCodeBlocks(renderMarkdown(answer));
   const actionsHtml = isUser
     ? '<button class="message-action-btn" data-action="edit-msg" data-id="' + msg.id + '">' + SVG_EDIT + ' \u7f16\u8f91</button>'
     : '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + ' \u590d\u5236</button><button class="message-action-btn" data-action="regenerate" data-id="' + msg.id + '">' + SVG_REFRESH + ' \u91cd\u65b0\u751f\u6210</button><button class="message-action-btn" data-action="speak-msg" data-id="' + msg.id + '">' + SVG_SPEAK + ' \u6717\u8bfb</button>';
-  return '<div class="message ' + (isUser?'user':'assistant') + '" data-id="' + msg.id + '"><div class="message-actions">' + actionsHtml + '</div><div class="message-avatar">' + (isUser ? SVG_USER : SVG_AI) + '</div><div class="message-body">' + bodyHtml + '</div></div>';
+  return '<div class="message ' + (isUser?'user':'assistant') + '" data-id="' + msg.id + '"><div class="message-avatar">' + (isUser ? SVG_USER : SVG_AI) + '</div><div class="message-body">' + bodyHtml + '<div class="message-actions">' + actionsHtml + '</div></div></div>';
 }
 
 async function renderMessages() {
@@ -262,7 +262,14 @@ function attachMessageActions() {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const msgEl = document.querySelector('.message[data-id="' + btn.dataset.id + '"]');
-      const text = msgEl?.querySelector(".message-body")?.textContent || "";
+      const bodyEl = msgEl?.querySelector(".message-body");
+      if (!bodyEl) return;
+      const clone = bodyEl.cloneNode(true);
+      const reasoning = clone.querySelector(".reasoning-block");
+      if (reasoning) reasoning.remove();
+      const actions = clone.querySelector(".message-actions");
+      if (actions) actions.remove();
+      const text = clone.textContent?.trim() || "";
       navigator.clipboard.writeText(text).then(() => showToast("已复制")).catch(() => showToast("复制失败"));
     });
   });
@@ -285,7 +292,16 @@ function attachMessageActions() {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const msgEl = document.querySelector('.message[data-id="' + btn.dataset.id + '"]');
-      let text = msgEl?.querySelector(".message-body")?.textContent || "";
+      const bodyEl = msgEl?.querySelector(".message-body");
+      if (!bodyEl) return;
+      // Clone and remove reasoning block to get only answer text
+      const clone = bodyEl.cloneNode(true);
+      const reasoning = clone.querySelector(".reasoning-block");
+      if (reasoning) reasoning.remove();
+      const actions = clone.querySelector(".message-actions");
+      if (actions) actions.remove();
+      let text = clone.textContent?.trim() || "";
+      if (!text) return;
       if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); return; }
       const u = new SpeechSynthesisUtterance(text.slice(0, 2000));
       u.lang = "zh-CN"; u.rate = 1.1;
@@ -591,7 +607,7 @@ async function sendMessage(userText) {
           // Render
           let displayHtml = "";
           if (reasoningContent) {
-            displayHtml += `<details class="reasoning-block" open>
+            displayHtml += `<details class="reasoning-block">
               <summary>\ud83e\udde0 \u6df1\u5ea6\u601d\u8003\u8fc7\u7a0b</summary>
               <div class="reasoning-content">${renderMarkdown(reasoningContent)}</div>
             </details>`;

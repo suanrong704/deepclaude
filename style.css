@@ -712,47 +712,32 @@ body {
 
 
 
-/* ===== Hover Action Menu ===== */
-.message {
-  position: relative;
-}
+/* ===== Hover Action Menu (DeepSeek-style inline) ===== */
 .message-actions {
-  display: none;
-  position: absolute;
-  top: -32px;
-  right: 0;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-md);
-  padding: 4px;
-  gap: 2px;
-  z-index: 10;
-  animation: fadeIn 0.15s ease;
-}
-.message:hover .message-actions,
-.message-actions.show {
   display: flex;
+  gap: 2px;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
-.message.user .message-actions { right: 0; left: auto; }
-.message.assistant .message-actions { right: 0; left: auto; }
+.message:hover .message-actions {
+  opacity: 1;
+}
 .message-action-btn {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--text-secondary);
-  padding: 6px 8px;
+  color: var(--text-tertiary);
+  padding: 4px 6px;
   border-radius: 6px;
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-family: var(--font);
+  justify-content: center;
   transition: all var(--transition);
-  white-space: nowrap;
 }
 .message-action-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
-.message-action-btn.danger:hover { color: var(--danger); }
+.message-action-btn svg { width: 15px; height: 15px; }
+.message.user .message-body .message-actions { justify-content: flex-end; }
 
 /* Version Navigation */
 .version-nav {
