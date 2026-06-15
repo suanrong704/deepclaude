@@ -357,27 +357,31 @@ function updateNavProgress() {
   
   if (!state.currentConvId || userMsgs.length <= 1) {
     track.innerHTML = "";
+    $("navProgress").style.display = "none";
     return;
   }
 
-  const totalH = container.scrollHeight - container.clientHeight;
+  $("navProgress").style.display = "";
+  const scrollH = container.scrollHeight;
   track.innerHTML = "";
   
   userMsgs.forEach((msgEl, i) => {
     const dot = document.createElement("div");
     dot.className = "nav-progress-dot";
-    const dotTop = ((msgEl.offsetTop - container.offsetTop) / container.scrollHeight) * 100;
-    dot.style.top = dotTop + "%";
+    const dotTop = (msgEl.offsetTop / scrollH) * 100;
+    dot.style.top = Math.min(98, Math.max(2, dotTop)) + "%";
     dot.title = (msgEl.querySelector(".message-body")?.textContent || "").trim().slice(0, 40);
     
     dot.addEventListener("mouseenter", (e) => {
       const tip = $("navTip");
       tip.textContent = dot.title;
       tip.style.display = "block";
+      tip.style.left = (e.clientX - 220) + "px";
+      tip.style.top = (e.clientY - 30) + "px";
     });
     dot.addEventListener("mousemove", (e) => {
       const tip = $("navTip");
-      tip.style.left = (e.clientX - 230) + "px";
+      tip.style.left = (e.clientX - 220) + "px";
       tip.style.top = (e.clientY - 30) + "px";
     });
     dot.addEventListener("mouseleave", () => {
@@ -392,6 +396,8 @@ function updateNavProgress() {
     track.appendChild(dot);
   });
 }
+
+
 function checkAutoScroll() {
   const area = $("chatArea");
   const dist = area.scrollHeight - area.scrollTop - area.clientHeight;
