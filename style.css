@@ -570,18 +570,17 @@ body {
   position: relative;
 }
 .thinking-dropdown {
-  position: absolute;
-  bottom: 100%;
+  position: fixed;
+  bottom: 140px;
   left: 50%;
   transform: translateX(-50%);
-  margin-bottom: 6px;
+  z-index: 500;
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--shadow-lg);
   padding: 4px;
-  z-index: 200;
-  min-width: 160px;
+  min-width: 170px;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -1246,11 +1245,14 @@ body {
   .thinking-toggle { flex-shrink: 0; position: relative; }
   .thinking-dropdown {
     position: fixed;
-    bottom: 90px;
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
-    z-index: 400;
-    min-width: 180px;
+    z-index: 500;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     background: var(--bg-primary);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -1367,19 +1369,4 @@ body {
   /* ===== Stop button ===== */
   .btn-stop { right: 12px; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
 
-  .thinking-toggle {
-    position: relative;
-  }
-  .thinking-dropdown {
-    position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 400;
-    min-width: 200px;
-  }
-  .thinking-option {
-    padding: 12px 16px;
-    font-size: 14px;
-  }
 }

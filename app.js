@@ -1044,7 +1044,11 @@ function init() {
   $("btnThinking").addEventListener("click", (e) => {
     e.stopPropagation();
     const dd = $("thinkingDropdown");
-    dd.style.display = dd.style.display === "none" ? "block" : "none";
+    if (dd.style.display === "none" || !dd.style.display) {
+      dd.style.display = "flex";
+    } else {
+      dd.style.display = "none";
+    }
   });
   document.querySelectorAll(".thinking-option").forEach(opt => {
     opt.addEventListener("click", (e) => {
