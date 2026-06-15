@@ -351,6 +351,7 @@ body {
 
 .message {
   display: flex;
+  flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 28px;
   animation: msgIn 0.25s ease;
@@ -777,11 +778,22 @@ body {
 
 /* ===== Hover Action Menu (DeepSeek inline) ===== */
 .message-actions {
+  width: 100%;
   display: flex;
-  gap: 2px;
-  margin-top: 6px;
+  gap: 4px;
   opacity: 0;
   transition: opacity 0.15s ease;
+  flex-wrap: wrap;
+}
+.message:hover .message-actions {
+  opacity: 1;
+}
+.message.user .message-actions {
+  justify-content: flex-end;
+  padding-right: 46px;
+}
+.message.assistant .message-actions {
+  padding-left: 46px;
 }
 .message:hover .message-actions { opacity: 1; }
 .message-action-btn {
@@ -1014,7 +1026,8 @@ body {
   top: 24px;
   bottom: 0;
   width: 4px;
-  background: var(--border);
+  background: var(--accent);
+  opacity: 0.25;
   border-radius: 2px;
   pointer-events: auto;
 }
@@ -1026,11 +1039,12 @@ body {
   height: 10px;
   border-radius: 50%;
   background: var(--accent);
-  opacity: 0.5;
+  opacity: 0.6;
   transition: all 0.2s ease;
   cursor: pointer;
   pointer-events: auto;
   border: 2px solid var(--bg-primary);
+  box-shadow: 0 0 0 1px rgba(77,107,254,0.3);
 }
 .nav-progress-track:hover .nav-progress-dot {
   opacity: 0.9;
