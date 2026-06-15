@@ -154,11 +154,16 @@
       </button>
     </div>
     <div class="file-preview" id="filePreview" style="display:none">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-      <span id="fileName"></span>
-      <button id="btnRemoveFile" title="移除附件">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <div class="file-preview-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        <span id="fileName"></span>
+        <button class="file-preview-expand" id="btnExpandFile" style="display:none">展开</button>
+        <button id="btnRemoveFile" title="移除附件">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="file-preview-text" id="filePreviewText"></div>
+      <div class="file-preview-full" id="filePreviewFull" style="display:none"></div>
     </div>
     <div class="input-wrapper">
       <button class="tool-btn" id="btnVoice" title="语音输入">
@@ -198,7 +203,7 @@
       </div>
       <div class="worldview-summary-actions">
         <button class="wv-btn-sm" id="btnUploadWorldview" title="上传文件">📁</button>
-        <input type="file" id="worldviewFileInput" accept=".txt,.md" style="display:none">
+        <input type="file" id="worldviewFileInput" accept=".txt,.md,.docx" style="display:none">
         <button class="wv-btn-sm" id="btnEditWorldview" title="编辑">✏️</button>
         <button class="wv-btn-sm" id="btnToggleWorldview" title="展开">▾</button>
         <button class="wv-btn-sm wv-btn-danger" id="btnClearWorldview" title="清空">🗑</button>

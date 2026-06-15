@@ -93,12 +93,25 @@ function updatePersonaUI() {
 function handleWorldviewUpload(file) {
   if (!file) return;
   if (file.size > 2000000) { showToast("文件太大（最大 2MB）"); return; }
-  var reader = new FileReader();
-  reader.onload = function() {
-    saveWorldview(reader.result);
-    showToast("世界观已导入（" + file.name + "）");
-  };
-  reader.readAsText(file);
+  if (file.name.endsWith(".docx")) {
+    if (typeof mammoth === "undefined") { showToast("Word解析正在加载，请稍后重试"); return; }
+    var reader = new FileReader();
+    reader.onload = async function() {
+      try {
+        var result = await mammoth.extractRawText({ arrayBuffer: reader.result });
+        saveWorldview(result.value);
+        showToast("世界观已导入（" + file.name + "）");
+      } catch (e) { showToast("解析 Word 文件失败"); }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    var reader = new FileReader();
+    reader.onload = function() {
+      saveWorldview(reader.result);
+      showToast("世界观已导入（" + file.name + "）");
+    };
+    reader.readAsText(file);
+  }
 }
 
 const SVG_USER = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>';
@@ -580,7 +593,7 @@ async function regenerateMessage(msgId) {
   }
   const userContent = userMsg.content;
   await renderMessages();
-  await streamAIResponse(userContent, vg, newVi);
+  await streamAIResponse(userContent, vg, newVi, null);
   await renderMessages(); scrollToBottom();
 }
 
@@ -900,15 +913,9 @@ async function sendMessage(userText) {
 
   $("welcome").style.display = "none";
 
-  // Build user message content
+  // Build user message content (no file content in message)
   let userContent = userText.trim();
-  if (state.attachedFile) {
-    userContent = `[附件: ${state.attachedFile.name}]
-${state.attachedFile.content}
-
----
-${userContent}`;
-  }
+  const attachedFile = state.attachedFile;
   clearAttachment();
 
   // Save user message
@@ -920,15 +927,17 @@ ${userContent}`;
   await renderMessages();
   scrollToBottom();
 
+  // Pass attached file info to streaming
+  const fileInfo = attachedFile;
   // Stream AI response
-  await streamAIResponse(userContent, vg, vi);
+  await streamAIResponse(userContent, vg, vi, fileInfo);
 
   // Generate title
   await generateTitle(userText.trim());
 }
 
 // ===== AI Streaming =====
-async function streamAIResponse(userContent, versionGroup, versionIndex) {
+async function streamAIResponse(userContent, versionGroup, versionIndex, attachedFile = null) {
   const apiKey = getApiKey();
   if (!apiKey) return;
 
@@ -967,6 +976,11 @@ async function streamAIResponse(userContent, versionGroup, versionIndex) {
     if (searchResults) {
       systemPrompt += `\n\nCurrent web search results:\n${searchResults}`;
     }
+  }
+
+  // Inject attached file content into system prompt
+  if (attachedFile) {
+    systemPrompt += "\n\n【用户上传的文件: " + attachedFile.name + "】\n" + attachedFile.content;
   }
 
   apiMessages.push({ role: "system", content: systemPrompt });
@@ -1457,16 +1471,42 @@ function init() {
     const file = e.target.files[0];
     if (!file) return;
     try {
-      const text = await file.text();
-      if (text.length > 100000) { showToast("\u6587\u4ef6\u592a\u5927\uff08\u6700\u5927 10 \u4e07\u5b57\u7b26\uff09"); return; }
-      state.attachedFile = { name: file.name, content: text.slice(0, 50000) };
+      let text;
+      if (file.name.endsWith(".docx")) {
+        if (typeof mammoth === "undefined") { showToast("Word解析正在加载，请稍后重试"); return; }
+        const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+        text = result.value;
+      } else {
+        text = await file.text();
+      }
+      if (text.length > 100000) { showToast("文件太大（最大 10 万字符）"); return; }
+      text = text.slice(0, 50000);
+      state.attachedFile = { name: file.name, content: text };
       $("fileName").textContent = file.name;
+      $("filePreviewText").textContent = text.slice(0, 200) + (text.length > 200 ? "…" : "");
+      const fullEl = $("filePreviewFull");
+      if (fullEl) fullEl.textContent = text;
+      if (fullEl) fullEl.style.display = "none";
       $("filePreview").style.display = "flex";
+      const expandBtn = $("btnExpandFile");
+      if (expandBtn) { expandBtn.textContent = "展开"; expandBtn.style.display = text.length > 200 ? "" : "none"; }
     } catch (err) {
-      showToast("\u65e0\u6cd5\u8bfb\u53d6\u6587\u4ef6\uff08\u4ec5\u652f\u6301\u6587\u672c\u6587\u4ef6\uff09");
+      showToast("无法读取文件：" + err.message);
+    }  });
+  $("btnRemoveFile").addEventListener("click", clearAttachment);
+  $("btnExpandFile").addEventListener("click", () => {
+    const full = $("filePreviewFull");
+    const btn = $("btnExpandFile");
+    if (full && btn) {
+      if (full.style.display === "none") {
+        full.style.display = "block";
+        btn.textContent = "收起";
+      } else {
+        full.style.display = "none";
+        btn.textContent = "展开";
+      }
     }
   });
-  $("btnRemoveFile").addEventListener("click", clearAttachment);
 
   // API settings modal
   $("btnApiSettings").addEventListener("click", () => {
