@@ -307,6 +307,7 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 /* Welcome */
@@ -941,6 +942,60 @@ body {
   margin-right: 6px;
 }
 
+
+/* ===== Progress Bar Navigation ===== */
+.nav-progress {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  z-index: 50;
+  pointer-events: none;
+}
+.nav-progress-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+.nav-progress-dot {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.nav-progress:hover .nav-progress-dot {
+  opacity: 0.5;
+}
+.nav-progress-dot:hover {
+  opacity: 1 !important;
+  background: var(--accent);
+  transform: translate(-50%, -50%) scale(1.8);
+}
+.nav-progress-tip {
+  position: fixed;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 300;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
 /* Message highlight flash */
 .message.flash-highlight .message-body {
   animation: msg-flash 0.6s ease;

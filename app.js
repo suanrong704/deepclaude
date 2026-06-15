@@ -441,7 +441,7 @@ function clearAttachment() {
 
 async function generateTitle(userText) {
   const conv = await storage.getConversation(state.currentConvId);
-  if (!conv || conv.title !== "新对话") return;
+  if (!conv || conv.title !== "???") return;
   const t = (userText || "").replace(/\s+/g, " ").trim().slice(0, 20);
   if (t) {
     await storage.updateConversation(state.currentConvId, { title: t });
@@ -500,14 +500,6 @@ async function sendMessage(userText) {
   await storage.addMessage(state.currentConvId, "user", userContent);
   await renderMessages();
   scrollToBottom();
-
-  // Auto-title
-  const conv = await storage.getConversation(state.currentConvId);
-  if (conv && conv.title === "\u65b0\u5bf9\u8bdd") {
-    const t = userText.trim().slice(0, 30);
-    await storage.updateConversation(state.currentConvId, { title: t || "\u65b0\u5bf9\u8bdd" });
-    renderSidebar();
-  }
 
   // Build messages for API
   const allMsgs = await storage.getMessages(state.currentConvId);
