@@ -699,26 +699,111 @@ async function generateTitle(userText) {
   }
 }
 
-async function exportConversation() {
+async function exportConversation(format = "json") {
   if (!state.currentConvId) return;
   const msgs = await storage.getMessages(state.currentConvId);
   const conv = allConvs.find(c => c.id === state.currentConvId);
-  let md = "# " + (conv?.title || "对话") + "\n\n";
-  msgs.forEach(m => {
-    const role = m.role === "user" ? "**You**" : "**DeepClaude**";
-    let content = m.content;
-    if (m.role === "assistant" && content.startsWith("__REASONING__")) {
-      const parts = content.split("__ANSWER__");
-      content = parts.length === 2 ? "> 深度思考：\n> " + parts[0].replace("__REASONING__","").replace(/\n/g,"\n> ") + "\n\n" + parts[1] : content;
+  const title = conv?.title || "对话";
+
+  if (format === "json") {
+    const data = {
+      version: 1,
+      title: title,
+      exportedAt: new Date().toISOString(),
+      messages: msgs.map(m => ({
+        id: m.id, role: m.role, content: m.content, model: m.model,
+        createdAt: m.createdAt, versionGroup: m.versionGroup,
+        versionIndex: m.versionIndex, isLatest: m.isLatest
+      }))
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = title + ".json"; a.click();
+    URL.revokeObjectURL(url);
+    showToast("已导出 JSON（可导入还原）");
+  } else {
+    let md = "# " + title + "\n\n";
+    msgs.filter(m => m.isLatest !== false).forEach(m => {
+      const role = m.role === "user" ? "**You**" : "**DeepClaude**";
+      let content = m.content;
+      if (m.role === "assistant" && content.startsWith("__REASONING__")) {
+        const parts = content.split("__ANSWER__");
+        content = parts.length === 2 ? "> 深度思考：\n> " + parts[0].replace("__REASONING__","").replace(/\n/g,"\n> ") + "\n\n" + parts[1] : content;
+      }
+      md += role + "\n\n" + content + "\n\n---\n\n";
+    });
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = title + ".md"; a.click();
+    URL.revokeObjectURL(url);
+    showToast("已导出 Markdown");
+  }
+}
+
+async function importConversation(file) {
+  if (!file) return;
+  try {
+    const text = await file.text();
+    let title, messages;
+
+    if (file.name.endsWith(".json")) {
+      const data = JSON.parse(text);
+      if (!data.messages || !Array.isArray(data.messages)) throw new Error("格式无效");
+      title = data.title || "导入的对话";
+      messages = data.messages.map(m => ({
+        id: m.id || crypto.randomUUID(),
+        conversationId: "",
+        role: m.role, content: m.content, model: m.model || null,
+        createdAt: m.createdAt || Date.now(),
+        versionGroup: m.versionGroup || null,
+        versionIndex: m.versionIndex || 0,
+        isLatest: m.isLatest !== false
+      }));
+    } else {
+      title = file.name.replace(/\.(md|txt)$/i, "");
+      messages = [];
+      const blocks = text.split(/\n---+\n/);
+      for (const block of blocks) {
+        const lines = block.trim().split("\n");
+        if (lines.length < 2) continue;
+        const firstLine = lines[0].trim();
+        let role, content;
+        if (firstLine.startsWith("**You**")) {
+          role = "user";
+          content = lines.slice(1).join("\n").trim();
+        } else if (firstLine.startsWith("**DeepClaude**")) {
+          role = "assistant";
+          content = lines.slice(1).join("\n").trim();
+        } else { continue; }
+        if (content) {
+          messages.push({
+            id: crypto.randomUUID(), role, content, model: null,
+            createdAt: Date.now() + messages.length,
+            versionGroup: null, versionIndex: 0, isLatest: true
+          });
+        }
+      }
+      if (messages.length === 0) throw new Error("无法解析对话内容");
     }
-    md += role + "\n\n" + content + "\n\n---\n\n";
-  });
-  const blob = new Blob([md], { type: "text/markdown" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = (conv?.title||"conversation") + ".md"; a.click();
-  URL.revokeObjectURL(url);
-  showToast("导出成功");
+
+    const conv = await storage.createConversation(title);
+    const store = await storage._tx("messages", "readwrite");
+    for (const m of messages) {
+      m.conversationId = conv.id;
+      await new Promise((res, rej) => { const r = store.add(m); r.onsuccess = res; r.onerror = rej; });
+    }
+    showToast("已导入 " + messages.length + " 条消息");
+    await renderSidebar();
+    if (!state.currentConvId) {
+      state.currentConvId = conv.id;
+      await renderMessages();
+      scrollToBottom();
+    }
+  } catch (err) {
+    showToast("导入失败: " + err.message);
+  }
 }
 
 // ===== Chat / API =====
@@ -1306,7 +1391,13 @@ function init() {
   });
 
   // Export
-  $("btnExportConv").addEventListener("click", exportConversation);
+  $("btnExportConv").addEventListener("click", () => exportConversation("json"));
+  $("btnExportMd").addEventListener("click", () => exportConversation("md"));
+  $("btnImportConv").addEventListener("click", () => $("importFileInput").click());
+  $("importFileInput").addEventListener("change", (e) => {
+    importConversation(e.target.files[0]);
+    e.target.value = "";
+  });
 
   // Auto-scroll
   $("btnScrollBottom").addEventListener("click", scrollToBottom);
