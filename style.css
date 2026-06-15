@@ -778,10 +778,41 @@ body {
 .message-actions {
   display: flex;
   gap: 2px;
-  margin-top: 6px;
   opacity: 0;
   transition: opacity 0.15s ease;
+  margin-top: 2px;
+  flex-wrap: wrap;
 }
+.message:hover .message-actions {
+  opacity: 1;
+}
+.message.user .message-actions {
+  justify-content: flex-end;
+}
+.message.assistant .message-actions {
+  padding-left: 4px;
+}
+.message-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.message-action-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--text-tertiary);
+}
+
 .message:hover .message-actions { opacity: 1; }
 .message-action-btn {
   background: none;
@@ -924,7 +955,7 @@ body {
   transition: background var(--transition);
 }
 .btn-generate-prompt:hover { background: var(--accent-hover); }
-.btn-generate-prompt:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-generate-prompt:disabled { opacity: 0.6; cursor: not-allowed; }
 .prompt-result { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; animation: fadeIn 0.3s ease; }
 .prompt-result-header {
   padding: 8px 12px; background: var(--bg-secondary);
@@ -1001,9 +1032,9 @@ body {
   position: absolute;
   right: 0;
   top: 0;
-  bottom: 0;
+  bottom: 130px;
   width: 30px;
-  z-index: 50;
+  z-index: 100;
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -1012,10 +1043,11 @@ body {
 .nav-progress-track {
   position: relative;
   width: 3px;
-  height: calc(100% - 30px);
+  height: calc(100% - 20px);
   background: var(--border);
   border-radius: 2px;
   pointer-events: auto;
+  min-height: 20px;
 }
 .nav-progress-dot {
   position: absolute;
@@ -1024,22 +1056,21 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--text-secondary);
-  opacity: 0.5;
-  transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  background: var(--accent);
+  opacity: 0.55;
+  transition: all 0.2s ease;
   cursor: pointer;
   pointer-events: auto;
   border: 2px solid var(--bg-primary);
-  box-shadow: 0 0 0 1px var(--border);
 }
 .nav-progress-track:hover .nav-progress-dot {
-  opacity: 0.8;
+  opacity: 0.9;
 }
 .nav-progress-dot:hover {
   opacity: 1 !important;
   background: var(--accent);
-  transform: translate(-50%, -50%) scale(1.6);
-  box-shadow: 0 0 0 2px var(--accent);
+  transform: translate(-50%, -50%) scale(1.8);
+  box-shadow: 0 0 0 4px rgba(77,107,254,0.3);
 }
 .nav-progress-tip {
   position: fixed;

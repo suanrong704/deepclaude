@@ -218,7 +218,7 @@ function createMessageEl(msg, versionIndex) {
   const actionsHtml = isUser
     ? '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + '</button><button class="message-action-btn" data-action="edit-msg" data-id="' + msg.id + '">' + SVG_EDIT + ' \u7f16\u8f91</button>'
     : '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + ' \u590d\u5236</button><button class="message-action-btn" data-action="regenerate" data-id="' + msg.id + '">' + SVG_REFRESH + ' \u91cd\u65b0\u751f\u6210</button><button class="message-action-btn" data-action="speak-msg" data-id="' + msg.id + '">' + SVG_SPEAK + ' \u6717\u8bfb</button>';
-  return '<div class="message ' + (isUser?'user':'assistant') + '" data-id="' + msg.id + '"><div class="message-avatar">' + (isUser ? SVG_USER : SVG_AI) + '</div><div class="message-body">' + bodyHtml + '<div class="message-actions">' + actionsHtml + '</div></div></div>';
+  return '<div class="message ' + (isUser?'user':'assistant') + '" data-id="' + msg.id + '"><div class="message-avatar">' + (isUser ? SVG_USER : SVG_AI) + '</div><div class="message-body">' + bodyHtml + '</div><div class="message-actions">' + actionsHtml + '</div></div></div>';
 }
 
 async function renderMessages() {
