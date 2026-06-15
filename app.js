@@ -165,11 +165,39 @@ async function newConversation() {
 }
 
 async function renameConversation(id) {
-  const newTitle = prompt("\u8f93\u5165\u65b0\u540d\u79f0\uff1a");
-  if (!newTitle?.trim()) return;
-  await storage.updateConversation(id, { title: newTitle.trim() });
-  renderSidebar();
+  const item = document.querySelector('.conv-item[data-id="' + id + '"]');
+  const titleSpan = item?.querySelector(".conv-title");
+  if (!titleSpan || titleSpan.querySelector("input")) return;
+  
+  const oldTitle = titleSpan.textContent;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = oldTitle;
+  input.className = "conv-rename-input";
+  input.style.cssText = "width:100%;padding:2px 4px;border:1px solid var(--accent);border-radius:4px;background:var(--bg-primary);color:var(--text-primary);font-size:13px;font-family:inherit;outline:none;";
+  titleSpan.textContent = "";
+  titleSpan.appendChild(input);
+  input.focus();
+  input.select();
+  
+  const finish = async () => {
+    const val = input.value.trim();
+    input.remove();
+    titleSpan.textContent = val || oldTitle;
+    if (val && val !== oldTitle) {
+      await storage.updateConversation(id, { title: val });
+      renderSidebar();
+    }
+  };
+  
+  input.addEventListener("blur", finish);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+    if (e.key === "Escape") { input.value = oldTitle; input.blur(); }
+  });
+  input.addEventListener("click", (e) => e.stopPropagation());
 }
+
 
 async function deleteConversation(id) {
   if (!confirm("\u786e\u5b9a\u5220\u9664\u8be5\u5bf9\u8bdd\uff1f")) return;
@@ -284,12 +312,53 @@ function attachMessageActions() {
       const msgs = await storage.getMessages(state.currentConvId);
       const msg = msgs.find(m => m.id === btn.dataset.id);
       if (!msg) return;
-      const newContent = prompt("编辑消息：", msg.content);
-      if (!newContent?.trim() || newContent === msg.content) return;
-      await storage.deleteAfterMessage(msg.id);
-      sendMessage(newContent.trim(), true);
+      
+      const msgEl = document.querySelector('.message[data-id="' + msg.id + '"]');
+      const bodyEl = msgEl?.querySelector(".message-body");
+      if (!bodyEl || bodyEl.querySelector("textarea")) return;
+      
+      const oldContent = msg.content;
+      const textarea = document.createElement("textarea");
+      textarea.value = oldContent;
+      textarea.style.cssText = "width:100%;min-height:60px;padding:8px 12px;border:1px solid var(--accent);border-radius:8px;background:var(--bg-primary);color:var(--text-primary);font-size:14px;font-family:inherit;line-height:1.6;resize:vertical;outline:none;";
+      
+      const btnRow = document.createElement("div");
+      btnRow.style.cssText = "display:flex;gap:8px;margin-top:8px;";
+      
+      const saveBtn = document.createElement("button");
+      saveBtn.textContent = "保存并重新发送";
+      saveBtn.style.cssText = "padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit;";
+      
+      const cancelBtn = document.createElement("button");
+      cancelBtn.textContent = "取消";
+      cancelBtn.style.cssText = "padding:6px 14px;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit;";
+      
+      btnRow.appendChild(saveBtn);
+      btnRow.appendChild(cancelBtn);
+      
+      bodyEl.innerHTML = "";
+      bodyEl.appendChild(textarea);
+      bodyEl.appendChild(btnRow);
+      textarea.focus();
+      
+      const cleanup = () => { bodyEl.innerHTML = ""; renderMessages(); };
+      
+      cancelBtn.addEventListener("click", (ev) => { ev.stopPropagation(); cleanup(); });
+      
+      saveBtn.addEventListener("click", async (ev) => {
+        ev.stopPropagation();
+        const newContent = textarea.value.trim();
+        if (!newContent || newContent === oldContent) { cleanup(); return; }
+        await storage.deleteAfterMessage(msg.id);
+        cleanup();
+        sendMessage(newContent);
+      });
+      
+      textarea.addEventListener("keydown", (ev) => {
+        if (ev.key === "Escape") { ev.stopPropagation(); cleanup(); }
+      });
     });
-  });
+  })
   document.querySelectorAll("[data-action=speak-msg]").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
