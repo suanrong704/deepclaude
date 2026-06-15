@@ -488,6 +488,81 @@ async function exportConversation() {
 }
 
 // ===== Chat / API =====
+
+// ===== Auto Context Retrieval =====
+function retrieveContext(userInput, allMessages) {
+  if (allMessages.length < 4) return "";
+  
+  // Extract keywords: Chinese bigrams + English words
+  const keywords = [];
+  const text = userInput.toLowerCase();
+  
+  // Chinese bigrams (2-char sliding window for CJK chars)
+  const cjk = [];
+  for (let i = 0; i < text.length - 1; i++) {
+    const c = text.charCodeAt(i);
+    if ((c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF)) {
+      cjk.push(text[i] + text[i + 1]);
+      i++; // skip next to avoid overlap, effectively bigrams
+    }
+  }
+  
+  // Add CJK trigrams for better precision
+  for (let i = 0; i < text.length - 2; i++) {
+    const c = text.charCodeAt(i);
+    if ((c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF)) {
+      cjk.push(text[i] + text[i + 1] + text[i + 2]);
+    }
+  }
+  
+  // English words (3+ chars)
+  const enWords = text.match(/[a-z]{3,}/g) || [];
+  
+  // Combine and deduplicate
+  const allKW = [...new Set([...cjk, ...enWords])];
+  if (allKW.length === 0) return "";
+  
+  // Filter stop words
+  const stops = new Set(["the","and","for","that","this","with","from","have","are","was","not","but","you","your","all","can","has","had","been","will","would","what","when","where","which","who","how"]);
+  const keywords_filtered = allKW.filter(kw => kw.length < 3 || !stops.has(kw));
+  if (keywords_filtered.length === 0) return "";
+  
+  // Score each message pair (user + assistant)
+  const pairs = [];
+  for (let i = 0; i < allMessages.length - 1; i += 2) {
+    const userMsg = allMessages[i];
+    const aiMsg = allMessages[i + 1];
+    if (userMsg.role !== "user" || !aiMsg || aiMsg.role !== "assistant") continue;
+    
+    const combined = (userMsg.content + " " + (aiMsg?.content || "")).toLowerCase();
+    let score = 0;
+    for (const kw of keywords_filtered) {
+      const count = (combined.match(new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi")) || []).length;
+      score += count * (kw.length >= 3 ? 3 : 1); // weight longer keywords higher
+    }
+    
+    if (score > 0) {
+      pairs.push({ userMsg, aiMsg, score, index: i });
+    }
+  }
+  
+  if (pairs.length === 0) return "";
+  
+  // Sort by score, take top 3
+  pairs.sort((a, b) => b.score - a.score);
+  const top = pairs.slice(0, 3);
+  
+  // Format snippets
+  let context = "\n\n[RELEVANT PAST CONTEXT - use this to stay consistent:]\n";
+  for (const p of top) {
+    const userSnippet = p.userMsg.content.replace(/\n/g, " ").slice(0, 120);
+    const aiSnippet = (p.aiMsg?.content || "").replace(/__REASONING__.*?__ANSWER__/s, "").replace(/\n/g, " ").slice(0, 200);
+    context += "Previous exchange: User: \"" + userSnippet + "...\" AI: \"" + aiSnippet + "...\"\n";
+  }
+  
+  return context;
+}
+
 async function sendMessage(userText) {
   if (!userText.trim() || state.isGenerating) return;
   const apiKey = getApiKey();
@@ -527,6 +602,12 @@ async function sendMessage(userText) {
     systemPrompt += " Provide detailed reasoning before your final answer.";
   }
 
+  // Auto context retrieval
+  const contextSnippet = retrieveContext(userText.trim(), allMsgs);
+  if (contextSnippet) {
+    systemPrompt += contextSnippet;
+  }
+
   // Add web search results
   if (state.webSearch) {
     const searchResults = await webSearch(userText.trim());
@@ -552,7 +633,13 @@ async function sendMessage(userText) {
   // Remove the last user message (we add it below in the API call)
   // Actually the user message is already the last one, so this is fine
 
-  // Set generating state
+    // Show context retrieval indicator
+  if (contextSnippet) {
+    const matchCount = (contextSnippet.match(/Previous exchange:/g) || []).length;
+    showToast("\u{1f517} \u5df2\u5173\u8054 " + matchCount + " \u6761\u76f8\u5173\u8bb0\u5f55", 3000);
+  }
+  
+// Set generating state
   state.isGenerating = true;
   $("btnSend").disabled = true;
   $("btnStop").classList.add("visible");
