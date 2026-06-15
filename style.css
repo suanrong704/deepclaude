@@ -1062,7 +1062,7 @@ body {
 
 .nav-progress {
   position: absolute;
-  right: 0;
+  right: 6px;
   top: 48px;
   bottom: 140px;
   width: 36px;
