@@ -6,6 +6,7 @@ const state = {
   currentConvId: null,
   model: "flash",       // flash | pro
   webSearch: false,
+  thinkingEffort: "disabled",  // disabled | high | max
   isGenerating: false,
   sidebarVisible: true,
   abortController: null,
@@ -569,6 +570,10 @@ async function sendMessage(userText) {
         stream: true,
         temperature: state.model === "pro" ? 0.1 : 0.7,
         max_tokens: state.model === "pro" ? 8192 : 4096,
+        ...(state.thinkingEffort !== "disabled" ? {
+          reasoning_effort: state.thinkingEffort,
+          thinking: { type: "enabled" }
+        } : {}),
       }),
       signal: state.abortController.signal,
     });
@@ -768,6 +773,27 @@ function init() {
   $("btnWebSearch").addEventListener("click", () => {
     state.webSearch = !state.webSearch;
     $("btnWebSearch").classList.toggle("active", state.webSearch);
+  });
+  // Thinking mode toggle
+  $("btnThinking").addEventListener("click", (e) => {
+    e.stopPropagation();
+    const dd = $("thinkingDropdown");
+    dd.style.display = dd.style.display === "none" ? "block" : "none";
+  });
+  document.querySelectorAll(".thinking-option").forEach(opt => {
+    opt.addEventListener("click", (e) => {
+      e.stopPropagation();
+      state.thinkingEffort = opt.dataset.effort;
+      document.querySelectorAll(".thinking-option").forEach(o => o.classList.remove("active"));
+      opt.classList.add("active");
+      $("thinkingDropdown").style.display = "none";
+      // Update button style
+      const btn = $("btnThinking");
+      btn.classList.toggle("active", state.thinkingEffort !== "disabled");
+    });
+  });
+  document.addEventListener("click", () => {
+    $("thinkingDropdown").style.display = "none";
   });
 
   // Theme toggle

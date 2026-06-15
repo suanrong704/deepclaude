@@ -498,6 +498,60 @@ body {
 .model-btn[data-model="pro"].active svg { color: #8b5cf6; }
 
 /* Option Chips */
+
+/* ===== Thinking Mode Toggle ===== */
+.thinking-toggle {
+  position: relative;
+}
+.thinking-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  z-index: 200;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.thinking-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all var(--transition);
+  white-space: nowrap;
+  text-align: left;
+  width: 100%;
+}
+.thinking-option:hover {
+  background: var(--bg-secondary);
+}
+.thinking-option.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 600;
+}
+.thinking-arrow {
+  transition: transform var(--transition);
+}
+.opt-chip.active .thinking-arrow {
+  transform: rotate(180deg);
+}
+
 .opt-chip {
   padding: 6px 14px;
   border: 1px solid var(--border);
