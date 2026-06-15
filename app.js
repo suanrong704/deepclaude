@@ -37,9 +37,7 @@ function updateWorldviewUI() {
     var charCount = text.length;
     var summary = text.slice(0, 80).replace(/\n/g, " ");
     status.textContent = "世界观 · 已设定 " + charCount.toLocaleString() + " 字：“" + summary + "…”";
-    previewContent.textContent = charCount > 5000 ? text.slice(0, 5000) + "
-
-…（前 5000 字预览，点击编辑查看全文）" : text;
+    previewContent.textContent = charCount > 5000 ? text.slice(0, 5000) + "\n\n…（前 5000 字预览，点击编辑查看全文）" : text;
     toggleBtn.style.display = "";
   } else {
     status.textContent = "世界观 · 未设定";
