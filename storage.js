@@ -86,10 +86,12 @@ class Storage {
   }
 
   // Messages
-  async addMessage(conversationId, role, content, model = null) {
+  async addMessage(conversationId, role, content, model = null, versionGroup = null, versionIndex = 0) {
     const msg = {
       id: crypto.randomUUID(), conversationId, role, content, model,
-      editHistory: [], createdAt: Date.now()
+      editHistory: [], createdAt: Date.now(),
+      versionGroup: versionGroup || null, versionIndex: versionIndex || 0,
+      isLatest: true
     };
     const store = await this._tx("messages", "readwrite");
     await new Promise((resolve, reject) => {
@@ -137,5 +139,26 @@ class Storage {
     for (const m of toDelete) delStore.delete(m.id);
   }
 }
+
+
+  async markVersionNotLatest(versionGroup) {
+    const store = await this._tx("messages", "readwrite");
+    const idx = store.index("conversationId");
+    // We need to iterate all conversations to find messages with this versionGroup
+    // Since we don't have an index on versionGroup, we'll get messages for current conv
+    // Actually, we need a simpler approach: just pass the message IDs to update
+  }
+  async setMessageNotLatest(messageId) {
+    const store = await this._tx("messages", "readwrite");
+    const msg = await new Promise((res, rej) => {
+      const r = store.get(messageId); r.onsuccess = () => res(r.result); r.onerror = rej;
+    });
+    if (msg) {
+      msg.isLatest = false;
+      await new Promise((resolve, reject) => {
+        const r = store.put(msg); r.onsuccess = resolve; r.onerror = reject;
+      });
+    }
+  }
 
 const storage = new Storage();

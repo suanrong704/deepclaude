@@ -1222,6 +1222,21 @@ body {
 
 /* Mobile */
 
+
+/* Version Navigation */
+.version-nav {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-right: 8px; font-size: 12px;
+}
+.version-nav-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 6px; cursor: pointer;
+  color: var(--text-secondary); font-size: 11px;
+  transition: all var(--transition);
+}
+.version-nav-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.version-nav-label { color: var(--text-tertiary); min-width: 28px; text-align: center; }
+
 /* ===== Mobile ===== */
 @media (max-width: 768px) {
   /* ===== Core Layout ===== */
