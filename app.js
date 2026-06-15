@@ -351,23 +351,12 @@ async function regenerateMessage(msgId) {
 
 
 function updateNavProgress() {
-  // Ensure nav-progress elements exist (inject if needed)
-  let track = document.getElementById("navTrack");
-  if (!track) {
-    const nav = document.createElement("div");
-    nav.className = "nav-progress";
-    nav.id = "navProgress";
-    nav.innerHTML = '<div class="nav-progress-track" id="navTrack"></div><div class="nav-progress-tip" id="navTip" style="display:none"></div>';
-    const main = document.querySelector(".main");
-    if (main) main.appendChild(nav);
-    track = document.getElementById("navTrack");
-  }
-  
+  const track = document.getElementById("navTrack");
   const userMsgs = document.querySelectorAll(".message.user");
   const container = document.getElementById("chatArea");
   
-  if (!state.currentConvId || userMsgs.length <= 1) {
-    track.innerHTML = "";
+  if (!track || !state.currentConvId || userMsgs.length <= 1) {
+    if (track) track.innerHTML = "";
     const navP = document.getElementById("navProgress");
     if (navP) navP.style.display = "none";
     return;
