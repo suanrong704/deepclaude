@@ -71,19 +71,9 @@ function editWorldview() {
   toggleBtn.style.display = "none";
   textarea.focus();
 }
-async function handleWorldviewUpload(file) {
+function handleWorldviewUpload(file) {
   if (!file) return;
   if (file.size > 2000000) { showToast("文件太大（最大 2MB）"); return; }
-  if (file.name.endsWith(".docx")) {
-    if (typeof mammoth === "undefined") { showToast("Word解析模块加载中"); return; }
-    try {
-      const arrayBuf = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer: arrayBuf });
-      saveWorldview(result.value);
-      showToast("世界观已导入（" + file.name + "）");
-      return;
-    } catch (err) { showToast("Word文档解析失败"); return; }
-  }
   var reader = new FileReader();
   reader.onload = function() {
     saveWorldview(reader.result);
@@ -355,7 +345,7 @@ function highlightCode() {
   });
 }
 
-function createMessageEl(msg, versionCounts) {
+function createMessageEl(msg, versionIndex) {
   const isUser = msg.role === "user";
   let content = msg.content;
   if (!isUser && msg.versions?.length && versionIndex !== undefined) {
@@ -375,13 +365,9 @@ function createMessageEl(msg, versionCounts) {
     bodyHtml += '<details class="reasoning-block"><summary>🧠 \u6df1\u5ea6\u601d\u8003\u8fc7\u7a0b</summary><div class="reasoning-content">' + renderMarkdown(reasoning) + '</div></details>';
   }
   bodyHtml += wrapCodeBlocks(renderMarkdown(answer));
-  const vg = msg.versionGroup;
-  const totalVersions = (vg && versionCounts && versionCounts[vg]) ? Math.ceil(versionCounts[vg] / 2) : 0;
-  const curVersion = (msg.versionIndex || 0) + 1;
-  const versionNav = totalVersions > 1 ? '<span class="version-nav"><button class="version-nav-btn" data-action="prev-ver" data-group="' + vg + '">◀</button><span class="version-nav-label">' + curVersion + '/' + totalVersions + '</span><button class="version-nav-btn" data-action="next-ver" data-group="' + vg + '">▶</button></span>' : '';
   const actionsHtml = isUser
-    ? versionNav + '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + '</button><button class="message-action-btn" data-action="edit-msg" data-id="' + msg.id + '">' + SVG_EDIT + ' 编辑</button>'
-    : '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + ' 复制</button><button class="message-action-btn" data-action="regenerate" data-id="' + msg.id + '">' + SVG_REFRESH + ' 重新生成</button><button class="message-action-btn" data-action="speak-msg" data-id="' + msg.id + '">' + SVG_SPEAK + ' 朗读</button>';
+    ? '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + '</button><button class="message-action-btn" data-action="edit-msg" data-id="' + msg.id + '">' + SVG_EDIT + ' \u7f16\u8f91</button>'
+    : '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + ' \u590d\u5236</button><button class="message-action-btn" data-action="regenerate" data-id="' + msg.id + '">' + SVG_REFRESH + ' \u91cd\u65b0\u751f\u6210</button><button class="message-action-btn" data-action="speak-msg" data-id="' + msg.id + '">' + SVG_SPEAK + ' \u6717\u8bfb</button>';
   return '<div class="message ' + (isUser?'user':'assistant') + '" data-id="' + msg.id + '"><div class="message-avatar">' + getAvatarHTML(isUser ? 'user' : 'ai') + '</div><div class="message-body">' + bodyHtml + '</div><div class="message-actions">' + actionsHtml + '</div></div></div>';
 }
 
@@ -392,10 +378,7 @@ async function renderMessages() {
     return;
   }
   const msgs = await storage.getMessages(state.currentConvId);
-  const latestMsgs = msgs.filter(m => m.isLatest !== false);
-  const versionCounts = {};
-  msgs.forEach(m => { if (m.versionGroup) versionCounts[m.versionGroup] = (versionCounts[m.versionGroup] || 0) + 1; });
-  $("chatMessages").innerHTML = latestMsgs.map(m => createMessageEl(m, versionCounts)).join("");
+  $("chatMessages").innerHTML = msgs.map(m => createMessageEl(m, m.versions?.length ? m.versions.length - 1 : undefined)).join("");
   highlightCode();
   attachMessageActions();
   updateNavProgress();
@@ -410,21 +393,26 @@ function attachMessageActions() {
   document.querySelectorAll("[data-action=prev-version], [data-action=next-version]").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      const msgId = btn.dataset.id;
+      const group = btn.dataset.group;
+      const isNext = btn.dataset.action === "next-version";
       const msgs = await storage.getMessages(state.currentConvId);
-      const msg = msgs.find(m => m.id === msgId);
-      if (!msg?.versions) return;
-      let curIdx = msg.versions.length - 1;
-      const msgEl = document.querySelector('.message[data-id="' + msgId + '"]');
-      const navText = msgEl?.querySelector(".version-nav span")?.textContent;
-      if (navText) {
-        const match = navText.match(/(\d+)\/(\d+)/);
-        if (match) curIdx = parseInt(match[1]) - 1;
+      const groupMsgs = msgs.filter(m => m.versionGroup === group);
+      if (groupMsgs.length === 0) return;
+      const curMax = Math.max(...groupMsgs.filter(m => m.isLatest !== false).map(m => m.versionIndex));
+      const allIndices = [...new Set(groupMsgs.map(m => m.versionIndex))].sort((a,b) => a-b);
+      const targetIdx = isNext
+        ? (allIndices.find(i => i > curMax) ?? allIndices[0])
+        : ([...allIndices].reverse().find(i => i < curMax) ?? allIndices[allIndices.length-1]);
+      for (const m of groupMsgs) {
+        const store = await storage._tx("messages", "readwrite");
+        const fresh = await new Promise((res,rej) => { const r = store.get(m.id); r.onsuccess = () => res(r.result); r.onerror = rej; });
+        if (fresh && fresh.isLatest !== (m.versionIndex === targetIdx)) {
+          fresh.isLatest = (m.versionIndex === targetIdx);
+          await new Promise((res,rej) => { const r = store.put(fresh); r.onsuccess = res; r.onerror = rej; });
+        }
       }
-      const newIdx = btn.dataset.action === "prev-version" ? curIdx - 1 : curIdx + 1;
-      if (newIdx < 0 || newIdx >= msg.versions.length) return;
-      msgEl.outerHTML = createMessageEl(msg, newIdx);
-      highlightCode(); attachMessageActions();
+      await renderMessages();
+      scrollToBottom();
     });
   });
   document.querySelectorAll("[data-action=copy-msg]").forEach(btn => {
@@ -1197,35 +1185,28 @@ function init() {
     $("worldviewPanel").classList.remove("open");
     $("btnWorldview").classList.remove("active");
   });
-  // Worldview toggle
   $("btnToggleWorldview").addEventListener("click", toggleWorldview);
-  // Worldview edit
   $("btnEditWorldview").addEventListener("click", editWorldview);
-  // Worldview save
   $("btnSaveWorldview").addEventListener("click", () => {
     saveWorldview($("worldviewTextarea").value);
     $("worldviewEditor").style.display = "none";
     showToast("世界观已保存");
   });
-  // Worldview cancel
   $("btnCancelEdit").addEventListener("click", () => {
     $("worldviewEditor").style.display = "none";
     updateWorldviewUI();
   });
-  // Worldview clear
   $("btnClearWorldview").addEventListener("click", () => {
     if (confirm("确定要清空世界观设定吗？")) {
       saveWorldview("");
       showToast("世界观已清空");
     }
   });
-  // Worldview file upload
   $("btnUploadWorldview").addEventListener("click", () => $("worldviewFileInput").click());
   $("worldviewFileInput").addEventListener("change", (e) => {
     handleWorldviewUpload(e.target.files[0]);
     e.target.value = "";
   });
-  // Prompt generator
   $("promptGenHeader").addEventListener("click", () => {
     var body = $("promptGenBody");
     var header = $("promptGenHeader");
@@ -1304,18 +1285,7 @@ function init() {
     const file = e.target.files[0];
     if (!file) return;
     try {
-      let text;
-      const isDocx = file.name.endsWith(".docx");
-      if (isDocx) {
-        if (typeof mammoth === "undefined") { showToast("Word解析模块加载中"); return; }
-        try {
-          const arrayBuf = await file.arrayBuffer();
-          const result = await mammoth.extractRawText({ arrayBuffer: arrayBuf });
-          text = result.value;
-        } catch (err) { showToast("Word文档解析失败"); return; }
-      } else {
-        text = await file.text();
-      }
+      const text = await file.text();
       if (text.length > 100000) { showToast("\u6587\u4ef6\u592a\u5927\uff08\u6700\u5927 10 \u4e07\u5b57\u7b26\uff09"); return; }
       state.attachedFile = { name: file.name, content: text.slice(0, 50000) };
       $("fileName").textContent = file.name;
@@ -1364,7 +1334,6 @@ function init() {
   document.getElementById("aiAvatarPick").addEventListener("click", () => handleAvatarUpload("ai"));
   document.getElementById("btnResetAvatars").addEventListener("click", resetAvatars);
   updateAvatarPreviews();
-  // Worldview
   loadWorldview();
 }
 

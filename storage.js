@@ -161,4 +161,17 @@ class Storage {
     }
   }
 
+  async setMessageNotLatest(messageId) {
+    const store = await this._tx("messages", "readwrite");
+    const msg = await new Promise((res, rej) => {
+      const r = store.get(messageId); r.onsuccess = () => res(r.result); r.onerror = rej;
+    });
+    if (msg) {
+      msg.isLatest = false;
+      await new Promise((resolve, reject) => {
+        const r = store.put(msg); r.onsuccess = resolve; r.onerror = reject;
+      });
+    }
+  }
+
 const storage = new Storage();
