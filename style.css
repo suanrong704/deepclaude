@@ -1095,11 +1095,7 @@ body {
 }
 
 /* Voice Recording */
-.tool-btn.listening {
-  color: var(--danger) !important;
-  position: relative;
-}
-.tool-btn.listening::after {
+.tool-btn.tool-btn.listening::after {
   content: "";
   position: absolute;
   inset: -4px;
@@ -1125,29 +1121,8 @@ body {
   padding: 4px 4px 8px;
 }
 .msg-outline-list { display: flex; flex-direction: column; gap: 2px; }
-.msg-outline-item {
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--text-secondary);
-  transition: all var(--transition);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .msg-outline-item:hover { background: var(--bg-sidebar-hover); color: var(--text-primary); }
-.msg-outline-item .ol-num {
-  display: inline-block;
-  min-width: 18px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-tertiary);
-  margin-right: 6px;
-}
-
-
-.nav-progress {
+.msg-outline-item .nav-progress {
   position: fixed;
   right: 6px;
   top: 48px;
@@ -1276,11 +1251,6 @@ body {
   }
   
   /* Header */
-  .chat-header {
-    padding: 8px 12px;
-    min-height: 44px;
-    display: flex; align-items: center; gap: 8px;
-  }
   .btn-toggle-sidebar { padding: 6px; }
   
   /* Chat area: take full width */
