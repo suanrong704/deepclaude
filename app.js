@@ -345,29 +345,27 @@ function highlightCode() {
   });
 }
 
-function createMessageEl(msg, versionIndex) {
+function createMessageEl(msg, versionCounts, userVersionGroups) {
   const isUser = msg.role === "user";
   let content = msg.content;
-  if (!isUser && msg.versions?.length && versionIndex !== undefined) {
-    content = msg.versions[versionIndex].content;
-  }
   let reasoning = null, answer = content;
   if (!isUser && content.startsWith("__REASONING__")) {
     const parts = content.split("__ANSWER__");
     if (parts.length === 2) { reasoning = parts[0].replace("__REASONING__",""); answer = parts[1]; }
   }
   let bodyHtml = "";
-  if (!isUser && msg.versions?.length && msg.versions.length > 1) {
-    const idx = versionIndex ?? msg.versions.length - 1;
-    bodyHtml += '<div class="version-nav"><button data-action="prev-version" data-id="' + msg.id + '"' + (idx===0?' disabled':'') + '>&#9664;</button><span>' + (idx+1) + '/' + msg.versions.length + '</span><button data-action="next-version" data-id="' + msg.id + '"' + (idx>=msg.versions.length-1?' disabled':'') + '>&#9654;</button></div>';
-  }
   if (reasoning) {
     bodyHtml += '<details class="reasoning-block"><summary>🧠 \u6df1\u5ea6\u601d\u8003\u8fc7\u7a0b</summary><div class="reasoning-content">' + renderMarkdown(reasoning) + '</div></details>';
   }
   bodyHtml += wrapCodeBlocks(renderMarkdown(answer));
+  const vg = msg.versionGroup;
+  const hasUserInGroup = userVersionGroups && userVersionGroups.has(vg);
+  const totalVersions = (vg && versionCounts && versionCounts[vg]) ? (hasUserInGroup ? Math.ceil(versionCounts[vg] / 2) : versionCounts[vg]) : 0;
+  const curVersion = (msg.versionIndex || 0) + 1;
+  const versionNav = totalVersions > 1 ? '<span class="version-nav"><button class="version-nav-btn" data-action="prev-version" data-group="' + vg + '">◀</button><span class="version-nav-label">' + curVersion + '/' + totalVersions + '</span><button class="version-nav-btn" data-action="next-version" data-group="' + vg + '">▶</button></span>' : '';
   const actionsHtml = isUser
-    ? '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + '</button><button class="message-action-btn" data-action="edit-msg" data-id="' + msg.id + '">' + SVG_EDIT + ' \u7f16\u8f91</button>'
-    : '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + ' \u590d\u5236</button><button class="message-action-btn" data-action="regenerate" data-id="' + msg.id + '">' + SVG_REFRESH + ' \u91cd\u65b0\u751f\u6210</button><button class="message-action-btn" data-action="speak-msg" data-id="' + msg.id + '">' + SVG_SPEAK + ' \u6717\u8bfb</button>';
+    ? versionNav + '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + '</button><button class="message-action-btn" data-action="edit-msg" data-id="' + msg.id + '">' + SVG_EDIT + ' \u7f16\u8f91</button>'
+    : versionNav + '<button class="message-action-btn" data-action="copy-msg" data-id="' + msg.id + '">' + SVG_COPY + ' \u590d\u5236</button><button class="message-action-btn" data-action="regenerate" data-id="' + msg.id + '">' + SVG_REFRESH + ' \u91cd\u65b0\u751f\u6210</button><button class="message-action-btn" data-action="speak-msg" data-id="' + msg.id + '">' + SVG_SPEAK + ' \u6717\u8bfb</button>';
   return '<div class="message ' + (isUser?'user':'assistant') + '" data-id="' + msg.id + '"><div class="message-avatar">' + getAvatarHTML(isUser ? 'user' : 'ai') + '</div><div class="message-body">' + bodyHtml + '</div><div class="message-actions">' + actionsHtml + '</div></div></div>';
 }
 
@@ -378,7 +376,16 @@ async function renderMessages() {
     return;
   }
   const msgs = await storage.getMessages(state.currentConvId);
-  $("chatMessages").innerHTML = msgs.map(m => createMessageEl(m, m.versions?.length ? m.versions.length - 1 : undefined)).join("");
+  const latestMsgs = msgs.filter(m => m.isLatest !== false);
+  const versionCounts = {};
+  const userVersionGroups = new Set();
+  msgs.forEach(m => {
+    if (m.versionGroup) {
+      versionCounts[m.versionGroup] = (versionCounts[m.versionGroup] || 0) + 1;
+      if (m.role === "user") userVersionGroups.add(m.versionGroup);
+    }
+  });
+  $("chatMessages").innerHTML = latestMsgs.map(m => createMessageEl(m, versionCounts, userVersionGroups)).join("");
   highlightCode();
   attachMessageActions();
   updateNavProgress();
@@ -476,7 +483,21 @@ function attachMessageActions() {
         ev.stopPropagation();
         const newContent = textarea.value.trim();
         if (!newContent || newContent === oldContent) { cleanup(); return; }
-        await storage.deleteAfterMessage(msg.id);
+        const vg = msg.versionGroup || msg.id;
+        state.editingVersionGroup = vg;
+        const allMsgs = await storage.getMessages(state.currentConvId);
+        const groupMsgsEdit = allMsgs.filter(m => m.versionGroup === vg);
+        const maxViEdit = groupMsgsEdit.length > 0 ? Math.max(...groupMsgsEdit.map(m => m.versionIndex || 0)) : 0;
+        const tailMsgs = allMsgs.filter(m => m.createdAt >= msg.createdAt);
+        for (const om of tailMsgs) {
+          await storage.setMessageNotLatest(om.id);
+          if (!om.versionGroup) {
+            om.versionGroup = vg;
+            const store = await storage._tx("messages", "readwrite");
+            await new Promise((res, rej) => { const r = store.put(om); r.onsuccess = res; r.onerror = rej; });
+          }
+        }
+        state.nextVersionIndex = maxViEdit + 1;
         cleanup();
         sendMessage(newContent);
       });
@@ -522,29 +543,27 @@ async function regenerateMessage(msgId) {
   const msgs = await storage.getMessages(state.currentConvId);
   const msg = msgs.find(m => m.id === msgId);
   if (!msg || msg.role !== "assistant") return;
-  if (!msg.versions) msg.versions = [];
-  msg.versions.push({ content: msg.content, model: msg.model || "unknown", createdAt: Date.now() });
   const msgIdx = msgs.findIndex(m => m.id === msgId);
   let userMsg = null;
   for (let i = msgIdx - 1; i >= 0; i--) { if (msgs[i].role === "user") { userMsg = msgs[i]; break; } }
   if (!userMsg) { showToast("找不到对应的用户消息"); return; }
-  const savedVersions = [...msg.versions];
-  await storage.deleteAfterMessage(msgId);
-  const userContent = userMsg.content;
-  await storage.deleteAfterMessage(userMsg.id);
-  await storage.addMessage(state.currentConvId, "user", userContent);
-  await renderMessages();
-  await streamAIResponse(userContent);
-  const newMsgs = await storage.getMessages(state.currentConvId);
-  const lastAiMsg = newMsgs.filter(m => m.role === "assistant").pop();
-  if (lastAiMsg && savedVersions.length > 0) {
-    lastAiMsg.versions = savedVersions;
+  // Create version group for this regenerate
+  const vg = msg.versionGroup || msg.id;
+  const groupMsgs = msgs.filter(m => m.versionGroup === vg);
+  const maxVi = groupMsgs.length > 0 ? Math.max(...groupMsgs.map(m => m.versionIndex || 0)) : 0;
+  const newVi = maxVi + 1;
+  // Mark old AI as not latest
+  await storage.setMessageNotLatest(msg.id);
+  if (!msg.versionGroup) {
     const msgStore = await storage._tx("messages", "readwrite");
-    await new Promise((res, rej) => { const r = msgStore.put(lastAiMsg); r.onsuccess = res; r.onerror = rej; });
+    const fresh = await new Promise((res,rej) => { const r = msgStore.get(msg.id); r.onsuccess = () => res(r.result); r.onerror = rej; });
+    if (fresh) { fresh.versionGroup = vg; fresh.versionIndex = msg.versionIndex || 0; await new Promise((res,rej) => { const r = msgStore.put(fresh); r.onsuccess = res; r.onerror = rej; }); }
   }
+  const userContent = userMsg.content;
+  await renderMessages();
+  await streamAIResponse(userContent, vg, newVi);
   await renderMessages(); scrollToBottom();
 }
-
 
 function updateNavProgress() {
   const track = document.getElementById("navTrack");
@@ -759,11 +778,12 @@ function retrieveContext(userInput, allMessages) {
   return context;
 }
 
+
 async function sendMessage(userText) {
   if (!userText.trim() || state.isGenerating) return;
   const apiKey = getApiKey();
   if (!apiKey) {
-    showToast("\u8bf7\u5148\u5728\u4fa7\u8fb9\u680f\u8bbe\u7f6e API Key");
+    showToast("请先在侧边栏设置 API Key");
     return;
   }
 
@@ -779,14 +799,34 @@ async function sendMessage(userText) {
   // Build user message content
   let userContent = userText.trim();
   if (state.attachedFile) {
-    userContent = `[\u9644\u4ef6: ${state.attachedFile.name}]\n${state.attachedFile.content}\n\n---\n${userContent}`;
+    userContent = `[附件: ${state.attachedFile.name}]
+${state.attachedFile.content}
+
+---
+${userContent}`;
   }
   clearAttachment();
 
   // Save user message
-  await storage.addMessage(state.currentConvId, "user", userContent);
+  const vg = state.editingVersionGroup || null;
+  const vi = state.nextVersionIndex || 0;
+  await storage.addMessage(state.currentConvId, "user", userContent, null, vg, vi);
+  state.editingVersionGroup = null;
+  state.nextVersionIndex = 0;
   await renderMessages();
   scrollToBottom();
+
+  // Stream AI response
+  await streamAIResponse(userContent, vg, vi);
+
+  // Generate title
+  await generateTitle(userText.trim());
+}
+
+// ===== AI Streaming =====
+async function streamAIResponse(userContent, versionGroup, versionIndex) {
+  const apiKey = getApiKey();
+  if (!apiKey) return;
 
   // Build messages for API
   const allMsgs = await storage.getMessages(state.currentConvId);
@@ -799,14 +839,14 @@ async function sendMessage(userText) {
   }
 
   // Auto context retrieval
-  const contextSnippet = retrieveContext(userText.trim(), allMsgs);
+  const contextSnippet = retrieveContext(userContent.trim(), allMsgs);
   if (contextSnippet) {
     systemPrompt += contextSnippet;
   }
 
   // Add web search results
   if (state.webSearch) {
-    const searchResults = await webSearch(userText.trim());
+    const searchResults = await webSearch(userContent.trim());
     if (searchResults) {
       systemPrompt += `\n\nCurrent web search results:\n${searchResults}`;
     }
@@ -826,16 +866,13 @@ async function sendMessage(userText) {
     apiMessages.push({ role: m.role, content });
   });
 
-  // Remove the last user message (we add it below in the API call)
-  // Actually the user message is already the last one, so this is fine
-
-    // Show context retrieval indicator
+  // Show context retrieval indicator
   if (contextSnippet) {
     const matchCount = (contextSnippet.match(/Previous exchange:/g) || []).length;
     showToast("\u{1f517} \u5df2\u5173\u8054 " + matchCount + " \u6761\u76f8\u5173\u8bb0\u5f55", 3000);
   }
   
-// Set generating state
+  // Set generating state
   state.isGenerating = true;
   $("btnSend").disabled = true;
   $("btnStop").classList.add("visible");
@@ -853,9 +890,12 @@ async function sendMessage(userText) {
   messagesEl.appendChild(placeholder);
   scrollToBottom();
 
+  let fullContent = "";
+  let reasoningContent = "";
+  const bodyEl = placeholder.querySelector(".message-body");
+  const model = state.model === "pro" ? "deepseek-v4-pro" : "deepseek-v4-flash";
+
   try {
-    const model = state.model === "pro" ? "deepseek-v4-pro" : "deepseek-v4-flash";
-    
     const resp = await fetch(API_URL, {
       method: "POST",
       headers: {
@@ -884,10 +924,7 @@ async function sendMessage(userText) {
     // Parse SSE stream
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
-    let fullContent = "";
-    let reasoningContent = "";
     let buffer = "";
-    const bodyEl = placeholder.querySelector(".message-body");
 
     while (true) {
       const { done, value } = await reader.read();
@@ -938,7 +975,7 @@ async function sendMessage(userText) {
     const finalContent = reasoningContent
       ? `__REASONING__${reasoningContent}__ANSWER__${fullContent}`
       : fullContent;
-    await storage.addMessage(state.currentConvId, "assistant", finalContent, model);
+    await storage.addMessage(state.currentConvId, "assistant", finalContent, model, versionGroup, versionIndex);
 
   } catch (err) {
     if (err.name === "AbortError") {
@@ -946,7 +983,7 @@ async function sendMessage(userText) {
         const finalContent = reasoningContent
           ? `__REASONING__${reasoningContent}__ANSWER__${fullContent}`
           : fullContent;
-        await storage.addMessage(state.currentConvId, "assistant", finalContent, model);
+        await storage.addMessage(state.currentConvId, "assistant", finalContent, model, versionGroup, versionIndex);
       }
       placeholder.remove();
     } else {
@@ -960,7 +997,6 @@ async function sendMessage(userText) {
     $("btnScrollBottom").style.display = "none";
     await renderMessages();
     scrollToBottom();
-    await generateTitle(userText.trim());
   }
 }
 
