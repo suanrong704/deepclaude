@@ -997,42 +997,49 @@ body {
 }
 
 
-/* ===== Progress Bar Navigation ===== */
 .nav-progress {
   position: absolute;
   right: 0;
   top: 0;
   bottom: 0;
-  width: 18px;
+  width: 30px;
   z-index: 50;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .nav-progress-track {
   position: relative;
-  width: 100%;
-  height: 100%;
+  width: 3px;
+  height: calc(100% - 30px);
+  background: var(--border);
+  border-radius: 2px;
   pointer-events: auto;
 }
 .nav-progress-dot {
   position: absolute;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--text-tertiary);
-  opacity: 0;
+  background: var(--text-secondary);
+  opacity: 0.5;
   transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
   cursor: pointer;
   pointer-events: auto;
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 0 0 1px var(--border);
 }
-.nav-progress:hover .nav-progress-dot {
-  opacity: 0.5;
+.nav-progress-track:hover .nav-progress-dot {
+  opacity: 0.8;
 }
 .nav-progress-dot:hover {
   opacity: 1 !important;
   background: var(--accent);
-  transform: translate(-50%, -50%) scale(1.8);
+  transform: translate(-50%, -50%) scale(1.6);
+  box-shadow: 0 0 0 2px var(--accent);
 }
 .nav-progress-tip {
   position: fixed;
@@ -1050,6 +1057,7 @@ body {
   box-shadow: var(--shadow-md);
   pointer-events: none;
 }
+
 /* Message highlight flash */
 .message.flash-highlight .message-body {
   animation: msg-flash 0.6s ease;

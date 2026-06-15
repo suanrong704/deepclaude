@@ -787,9 +787,17 @@ function init() {
       document.querySelectorAll(".thinking-option").forEach(o => o.classList.remove("active"));
       opt.classList.add("active");
       $("thinkingDropdown").style.display = "none";
-      // Update button style
+            // Update button style and text
       const btn = $("btnThinking");
-      btn.classList.toggle("active", state.thinkingEffort !== "disabled");
+      const span = btn.querySelector(".thinking-label");
+      if (state.thinkingEffort === "disabled") {
+        btn.classList.remove("active");
+        if (span) span.textContent = "思考";
+      } else {
+        btn.classList.add("active");
+        const label = state.thinkingEffort === "high" ? "思考 · High" : "思考 · Max";
+        if (span) span.textContent = label;
+      }
     });
   });
   document.addEventListener("click", () => {
