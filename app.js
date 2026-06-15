@@ -353,7 +353,7 @@ async function regenerateMessage(msgId) {
 function updateNavProgress() {
   const track = $("navTrack");
   const userMsgs = document.querySelectorAll(".message.user");
-  const container = $("chatArea");
+  const container = $("chatMessages");
   
   if (!state.currentConvId || userMsgs.length <= 1) {
     track.innerHTML = "";
@@ -368,10 +368,7 @@ function updateNavProgress() {
   userMsgs.forEach((msgEl, i) => {
     const dot = document.createElement("div");
     dot.className = "nav-progress-dot";
-    const containerRect = container.getBoundingClientRect();
-    const msgRect = msgEl.getBoundingClientRect();
-    const msgPos = msgRect.top - containerRect.top + container.scrollTop;
-    const dotTop = (msgPos / scrollH) * 100;
+    const dotTop = (msgEl.offsetTop / scrollH) * 100;
     dot.style.top = Math.min(98, Math.max(2, dotTop)) + "%";
     dot.title = (msgEl.querySelector(".message-body")?.textContent || "").trim().slice(0, 40);
     
