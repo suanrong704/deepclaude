@@ -12,6 +12,7 @@ const state = {
   abortController: null,
   attachedFile: null,
   worldview: "",
+  persona: "",
 };
 
 
@@ -71,6 +72,24 @@ function editWorldview() {
   toggleBtn.style.display = "none";
   textarea.focus();
 }
+function loadPersona() {
+  state.persona = localStorage.getItem("deepclaude_persona") || "";
+  updatePersonaUI();
+}
+function savePersona(text) {
+  state.persona = text;
+  localStorage.setItem("deepclaude_persona", text);
+  updatePersonaUI();
+}
+function updatePersonaUI() {
+  var status = document.getElementById("personaStatus");
+  var input = document.getElementById("personaInput");
+  if (input) input.value = state.persona;
+  if (status) {
+    status.textContent = state.persona ? "人设 · 已设定：“" + state.persona.slice(0, 30) + "…”" : "人设 · 未设定";
+  }
+}
+
 function handleWorldviewUpload(file) {
   if (!file) return;
   if (file.size > 2000000) { showToast("文件太大（最大 2MB）"); return; }
@@ -833,10 +852,23 @@ async function streamAIResponse(userContent, versionGroup, versionIndex) {
   const apiMessages = [];
 
   // System prompt
-  let systemPrompt = "You are DeepClaude, a helpful AI assistant." + (state.worldview ? "\n\n【世界观/底层框架 - 请严格遵循以下设定】\n" + state.worldview : "");
-  if (state.model === "pro") {
-    systemPrompt += " Provide detailed reasoning before your final answer.";
-  }
+  // Build system prompt
+  const modelName = state.model === "pro" ? "DeepSeek-V4-Pro" : "DeepSeek-V4-Flash";
+  const thinkingNote = state.thinkingEffort !== "disabled" ? " Thinking mode is enabled (reasoning_effort=" + state.thinkingEffort + "). You should output reasoning_content before your final answer." : "";
+  let systemPrompt = `You are an AI assistant powered by ${modelName}, running in a user-built web chat application. You are helpful, accurate, and concise.
+
+## Your Capabilities
+- You are currently using the ${modelName} model${state.thinkingEffort !== "disabled" ? " with thinking mode enabled at " + state.thinkingEffort + " intensity" : " in fast-response mode"}.
+- ${state.webSearch ? "Web search is currently ENABLED. Search results are included below and you should use them to ground your answers." : "Web search is available but currently turned off."}
+- The user may upload files (.txt, .md, .docx) whose contents are included in their message.
+- The conversation history may be automatically scanned for relevant context, which appears as "Previous exchange:" snippets in your instructions.
+- You can render Markdown, code blocks with syntax highlighting, and mathematical expressions.
+
+## Important Constraints
+- NEVER fabricate your identity or origin. You are not Claude, GPT, or any other named model brand.
+- Do NOT claim to be developed by OpenAI, Anthropic, or any company. You are running on DeepSeek-V4 via API.
+- Reply in the same language the user uses. For Chinese users, reply in Chinese.
+- Be direct and helpful. Avoid preambles like "As an AI assistant..." unless necessary.` + (state.persona ? "\n\n【人设/身份设定】\n" + state.persona : "") + (state.worldview ? "\n\n【世界观/底层框架 - 请严格遵循以下设定】\n" + state.worldview : "");
 
   // Auto context retrieval
   const contextSnippet = retrieveContext(userContent.trim(), allMsgs);
@@ -1243,6 +1275,19 @@ function init() {
     handleWorldviewUpload(e.target.files[0]);
     e.target.value = "";
   });
+
+  // Persona modal
+  $("btnPersona").addEventListener("click", () => {
+    $("personaModal").classList.add("show");
+    $("personaInput").focus();
+  });
+  $("btnPersonaCancel").addEventListener("click", () => $("personaModal").classList.remove("show"));
+  $("personaModal").addEventListener("click", (e) => { if (e.target === $("personaModal")) $("personaModal").classList.remove("show"); });
+  $("btnPersonaSave").addEventListener("click", () => {
+    savePersona($("personaInput").value.trim());
+    $("personaModal").classList.remove("show");
+    showToast(state.persona ? "人设已保存" : "人设已清除");
+  });
   $("promptGenHeader").addEventListener("click", () => {
     var body = $("promptGenBody");
     var header = $("promptGenHeader");
@@ -1371,6 +1416,7 @@ function init() {
   document.getElementById("btnResetAvatars").addEventListener("click", resetAvatars);
   updateAvatarPreviews();
   loadWorldview();
+  loadPersona();
 }
 
 marked.setOptions({ breaks: true, gfm: true });
