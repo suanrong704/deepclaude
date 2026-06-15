@@ -557,12 +557,12 @@ body {
 }
 
 .opt-chip {
-  padding: 6px 14px;
+  padding: 5px 14px;
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--bg-secondary);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1180,7 +1180,7 @@ body {
   
   .model-switcher { flex-shrink: 0; gap: 2px; }
   .model-btn { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
-  .opt-chip { padding: 4px 8px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+  .opt-chip { padding: 4px 8px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
   .thinking-toggle { flex-shrink: 0; position: relative; }
   .thinking-dropdown {
     position: fixed;
