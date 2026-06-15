@@ -89,6 +89,8 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   height: 100vh;
+  height: 100dvh;
+  height: 100dvh;
   overflow: hidden;
   display: flex;
   font-size: 15px;
@@ -106,6 +108,7 @@ body {
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
   height: 100vh;
+  height: 100dvh;
   background: var(--bg-sidebar);
   display: flex;
   flex-direction: column;
@@ -248,7 +251,6 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100vh;
   min-width: 0;
   position: relative;
 }
@@ -896,6 +898,7 @@ body {
   position: fixed;
   right: -400px; top: 0;
   width: 380px; height: 100vh;
+  height: 100dvh;
   background: var(--bg-primary);
   border-left: 1px solid var(--border);
   z-index: 150;
@@ -1119,6 +1122,7 @@ body {
   /* Main: full width */
   .main {
     height: 100vh;
+  height: 100dvh;
     height: 100dvh; /* dynamic viewport height for mobile */
   }
   
@@ -1152,9 +1156,10 @@ body {
   
   /* ===== Input Area ===== */
   .input-container {
-    padding: 8px 8px 12px;
+    padding: 8px 8px calc(12px + env(safe-area-inset-bottom, 0px)) 12px;
     border-top: 1px solid var(--border);
     flex-shrink: 0;
+    background: var(--bg-primary);
   }
   
   /* Options bar: scrollable row */
@@ -1260,7 +1265,7 @@ body {
   pre { font-size: 13px; padding: 12px; }
   
   /* ===== Scroll bottom button ===== */
-  .scroll-bottom-btn { right: 12px; bottom: 100px; }
+  .scroll-bottom-btn { right: 12px; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
   
   /* ===== Reasoning block ===== */
   .reasoning-block { font-size: 13px; }
@@ -1276,5 +1281,5 @@ body {
   .toast { font-size: 13px; bottom: 100px; }
   
   /* ===== Stop button ===== */
-  .btn-stop { right: 12px; bottom: 100px; }
+  .btn-stop { right: 12px; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
 }
