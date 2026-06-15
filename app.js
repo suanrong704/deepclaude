@@ -230,7 +230,7 @@ async function renderMessages() {
   $("chatMessages").innerHTML = msgs.map(m => createMessageEl(m, m.versions?.length ? m.versions.length - 1 : undefined)).join("");
   highlightCode();
   attachMessageActions();
-  updateMsgOutline();
+  updateNavProgress();
 }
 
 
@@ -349,29 +349,46 @@ async function regenerateMessage(msgId) {
 }
 
 
-function updateMsgOutline() {
-  if (!state.currentConvId) { $("msgOutline").style.display = "none"; return; }
+function updateNavProgress() {
+  const track = $("navTrack");
   const userMsgs = document.querySelectorAll(".message.user");
-  const outline = $("msgOutline");
-  if (userMsgs.length <= 1) { outline.style.display = "none"; return; }
-  outline.style.display = "block";
-  const list = $("msgOutlineList");
-  let html = "";
-  userMsgs.forEach((el, i) => {
-    const body = el.querySelector(".message-body");
-    const text = (body?.textContent || "").replace(/\s+/g, " ").trim().slice(0, 30);
-    html += '<div class="msg-outline-item" data-target="' + el.dataset.id + '"><span class="ol-num">' + (i+1) + '</span>' + (text || "...") + '</div>';
-  });
-  list.innerHTML = html;
-  list.querySelectorAll(".msg-outline-item").forEach(item => {
-    item.addEventListener("click", () => {
-      const targetEl = document.querySelector('.message[data-id="' + item.dataset.target + '"]');
-      if (targetEl) {
-        targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
-        targetEl.classList.add("flash-highlight");
-        setTimeout(() => targetEl.classList.remove("flash-highlight"), 700);
-      }
+  const container = $("chatArea");
+  
+  if (!state.currentConvId || userMsgs.length <= 1) {
+    track.innerHTML = "";
+    return;
+  }
+
+  const totalH = container.scrollHeight - container.clientHeight;
+  track.innerHTML = "";
+  
+  userMsgs.forEach((msgEl, i) => {
+    const dot = document.createElement("div");
+    dot.className = "nav-progress-dot";
+    const dotTop = ((msgEl.offsetTop - container.offsetTop) / container.scrollHeight) * 100;
+    dot.style.top = dotTop + "%";
+    dot.title = (msgEl.querySelector(".message-body")?.textContent || "").trim().slice(0, 40);
+    
+    dot.addEventListener("mouseenter", (e) => {
+      const tip = $("navTip");
+      tip.textContent = dot.title;
+      tip.style.display = "block";
     });
+    dot.addEventListener("mousemove", (e) => {
+      const tip = $("navTip");
+      tip.style.left = (e.clientX - 230) + "px";
+      tip.style.top = (e.clientY - 30) + "px";
+    });
+    dot.addEventListener("mouseleave", () => {
+      $("navTip").style.display = "none";
+    });
+    dot.addEventListener("click", () => {
+      msgEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      msgEl.classList.add("flash-highlight");
+      setTimeout(() => msgEl.classList.remove("flash-highlight"), 700);
+    });
+    
+    track.appendChild(dot);
   });
 }
 function checkAutoScroll() {
@@ -824,7 +841,10 @@ function init() {
 
   // Auto-scroll
   $("btnScrollBottom").addEventListener("click", scrollToBottom);
-  $("chatArea").addEventListener("scroll", checkAutoScroll);
+  $("chatArea").addEventListener("scroll", () => {
+    checkAutoScroll();
+    updateNavProgress();
+  });
 
   $("btnVoice").addEventListener("click", startVoice);
 
