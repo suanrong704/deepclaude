@@ -342,7 +342,7 @@ body {
 /* Messages */
 .chat-messages {
   padding: 24px 48px 40px;
-  position: relative;
+ 
 }
 
 .message {
@@ -1060,24 +1060,23 @@ body {
 .nav-progress {
   position: absolute;
   right: 6px;
-  top: 0;
+  top: 48px;
+  bottom: 140px;
   width: 36px;
-  bottom: 0;
-  z-index: 10;
+  z-index: 100;
   pointer-events: none;
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
 }
 .nav-progress-track {
   position: relative;
   width: 5px;
+  height: 100%;
   background: var(--border);
   border-radius: 3px;
   pointer-events: auto;
-  margin: 40px 0;
-  align-self: stretch;
-  min-height: 40px;
+  min-height: 30px;
 }
 .nav-progress-dot {
   position: absolute;
@@ -1087,19 +1086,19 @@ body {
   height: 12px;
   border-radius: 50%;
   background: var(--accent);
-  opacity: 0.5;
+  opacity: 0.55;
   transition: all 0.2s ease;
   cursor: pointer;
   pointer-events: auto;
   border: 2px solid var(--bg-primary);
 }
 .nav-progress-track:hover .nav-progress-dot {
-  opacity: 0.85;
+  opacity: 0.9;
 }
 .nav-progress-dot:hover {
   opacity: 1 !important;
   background: var(--accent);
-  transform: translate(-50%, -50%) scale(2);
+  transform: translate(-50%, -50%) scale(1.8);
   box-shadow: 0 0 0 4px rgba(77,107,254,0.4);
 }
 .nav-progress-tip {

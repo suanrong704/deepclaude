@@ -353,7 +353,7 @@ async function regenerateMessage(msgId) {
 function updateNavProgress() {
   const track = $("navTrack");
   const userMsgs = document.querySelectorAll(".message.user");
-  const container = $("chatMessages");
+  const container = $("chatArea");
   
   if (!state.currentConvId || userMsgs.length <= 1) {
     track.innerHTML = "";

@@ -40,7 +40,7 @@
   <div class="msg-outline" id="msgOutline" style="display:none">
     <div class="msg-outline-header">消息导航</div>
     <div class="msg-outline-list" id="msgOutlineList"></div>
-  </div>
+
   <div class="sidebar-conversations" id="convList"></div>
   <div class="sidebar-footer">
     <button class="sidebar-footer-item" id="btnApiSettings">
@@ -76,16 +76,24 @@
       <div class="welcome-logo">
         <svg width="64" height="64" viewBox="0 0 64 64"><defs><linearGradient id="wlg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4d6bfe"/><stop offset="100%" stop-color="#7c5cfc"/></linearGradient></defs><circle cx="20" cy="32" r="12" fill="none" stroke="url(#wlg)" stroke-width="4"/><circle cx="40" cy="20" r="8" fill="url(#wlg)" opacity="0.8"/><circle cx="40" cy="44" r="6" fill="url(#wlg)" opacity="0.5"/><line x1="30" y1="28" x2="35" y2="24" stroke="url(#wlg)" stroke-width="3" stroke-linecap="round"/><line x1="30" y1="36" x2="35" y2="40" stroke="url(#wlg)" stroke-width="3" stroke-linecap="round"/></svg>
       </div>
-      <h2>Hi, I''m DeepClaude.</h2>
+      <h2>Hi, I'm DeepClaude.</h2>
       <p class="welcome-sub">有什么可以帮你的？</p>
     </div>
-    <div class="chat-messages" id="chatMessages">
-      <div class="nav-progress" id="navProgress"><div class="nav-progress-track" id="navTrack"></div><div class="nav-progress-tip" id="navTip" style="display:none"></div></div>
-    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+
+
     <button class="scroll-bottom-btn" id="btnScrollBottom" title="滚动到底部" style="display:none">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
+    <div class="nav-progress" id="navProgress">
+      <div class="nav-progress-track" id="navTrack"></div>
+      <div class="nav-progress-tip" id="navTip" style="display:none"></div>
+    </div>
   </div>
+</div>
+
+
+
 
   <div class="input-container">
     <div class="input-options" id="inputOptions">
@@ -119,7 +127,7 @@
             Max
           </button>
         </div>
-      </div>
+
 
       <button class="opt-chip" id="btnWebSearch" title="联网搜索">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
@@ -151,9 +159,9 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
         </button>
       </div>
-    </div>
+
     <div class="input-footer">数据仅保存在本地浏览器</div>
-  </div>
+
 </div>
 
 <!-- Prompt Generator Panel -->
@@ -183,9 +191,6 @@
         </button>
       </div>
       <div class="prompt-result-content" id="promptResultContent"></div>
-    </div>
-  </div>
-</div>
 
 <!-- API Modal -->
 <div class="modal-overlay" id="apiModal">
@@ -200,7 +205,7 @@
       <button class="btn-cancel" id="btnApiCancel">取消</button>
       <button class="btn-save" id="btnApiSave">保存</button>
     </div>
-  </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
