@@ -341,13 +341,15 @@ body {
 
 /* Messages */
 .chat-messages {
-  padding: 24px 48px 40px;
- 
+  max-width: 768px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 24px 0;
+  flex: 1;
 }
 
 .message {
   display: flex;
-  flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 28px;
   animation: msgIn 0.25s ease;
@@ -669,7 +671,7 @@ body {
   animation: voice-ring-pulse 1.5s ease-out infinite;
 }
 @keyframes voice-ring-pulse {
-  0% { transform: scale(0.9); opacity: 0.8; }
+  0% { transform: scale(0.9); opacity: 0.9; }
   100% { transform: scale(1.8); opacity: 0; }
 }
 
@@ -774,74 +776,12 @@ body {
 
 /* ===== Hover Action Menu (DeepSeek inline) ===== */
 .message-actions {
-  width: 100%;
   display: flex;
-  gap: 4px;
+  gap: 2px;
+  margin-top: 6px;
   opacity: 0;
   transition: opacity 0.15s ease;
-  flex-wrap: wrap;
 }
-.message:hover .message-actions {
-  opacity: 1;
-}
-.message.user .message-actions {
-  justify-content: flex-end;
-  padding-right: 46px;
-}
-.message.assistant .message-actions {
-  padding-left: 46px;
-}
-.message-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-size: 12px;
-  cursor: pointer;
-  font-family: var(--font);
-  transition: all var(--transition);
-  white-space: nowrap;
-}
-.message-action-btn:hover {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border-color: var(--text-tertiary);
-}
-
-.message:hover .message-actions {
-  opacity: 1;
-}
-.message.user .message-actions {
-  justify-content: flex-end;
-}
-.message.assistant .message-actions {
-  padding-left: 4px;
-}
-.message-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-size: 12px;
-  cursor: pointer;
-  font-family: var(--font);
-  transition: all var(--transition);
-  white-space: nowrap;
-}
-.message-action-btn:hover {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border-color: var(--text-tertiary);
-}
-
 .message:hover .message-actions { opacity: 1; }
 .message-action-btn {
   background: none;
@@ -984,7 +924,7 @@ body {
   transition: background var(--transition);
 }
 .btn-generate-prompt:hover { background: var(--accent-hover); }
-.btn-generate-prompt:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-generate-prompt:disabled { opacity: 0.55; cursor: not-allowed; }
 .prompt-result { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; animation: fadeIn 0.3s ease; }
 .prompt-result-header {
   padding: 8px 12px; background: var(--bg-secondary);
@@ -1019,7 +959,7 @@ body {
   pointer-events: none;
 }
 @keyframes record-ring {
-  0% { transform: scale(1); opacity: 0.8; }
+  0% { transform: scale(1); opacity: 0.9; }
   100% { transform: scale(1.8); opacity: 0; }
 }
 
@@ -1060,10 +1000,10 @@ body {
 .nav-progress {
   position: absolute;
   right: 6px;
-  top: 48px;
-  bottom: 140px;
+  top: 0;
+  bottom: 0;
   width: 36px;
-  z-index: 100;
+  z-index: 50;
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -1072,7 +1012,7 @@ body {
 .nav-progress-track {
   position: relative;
   width: 5px;
-  height: 100%;
+  height: calc(100% - 30px);
   background: var(--border);
   border-radius: 3px;
   pointer-events: auto;
@@ -1117,7 +1057,6 @@ body {
   box-shadow: var(--shadow-md);
   pointer-events: none;
 }
-
 
 /* Message highlight flash */
 .message.flash-highlight .message-body {
