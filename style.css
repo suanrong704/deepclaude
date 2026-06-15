@@ -1542,3 +1542,34 @@ body {
 .version-nav-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
 .version-nav-label { color: var(--text-tertiary); min-width: 28px; text-align: center; }
 
+
+.msg-attachment {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-top: 6px;
+  background: rgba(77,107,254,0.08);
+  border: 1px solid rgba(77,107,254,0.2);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.msg-attachment span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msg-attachment-download {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.msg-attachment-download:hover {
+  background: rgba(77,107,254,0.15);
+}

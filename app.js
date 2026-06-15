@@ -390,6 +390,10 @@ function createMessageEl(msg, versionCounts, userVersionGroups) {
     bodyHtml += '<details class="reasoning-block"><summary>🧠 \u6df1\u5ea6\u601d\u8003\u8fc7\u7a0b</summary><div class="reasoning-content">' + renderMarkdown(reasoning) + '</div></details>';
   }
   bodyHtml += wrapCodeBlocks(renderMarkdown(answer));
+  // Attachment chip for user messages
+  if (isUser && msg.attachment && msg.attachment.name) {
+    bodyHtml += '<div class="msg-attachment" data-attachment="' + escHtml(msg.attachment.name) + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> <span>' + escHtml(msg.attachment.name) + '</span><button class="msg-attachment-download" data-action="download-attachment" data-id="' + msg.id + '" title="下载文件">⬇</button></div>';
+  }
   const vg = msg.versionGroup;
   const hasUserInGroup = userVersionGroups && userVersionGroups.has(vg);
   const totalVersions = (vg && versionCounts && versionCounts[vg]) ? (hasUserInGroup ? Math.ceil(versionCounts[vg] / 2) : versionCounts[vg]) : 0;
@@ -539,6 +543,19 @@ function attachMessageActions() {
       });
     });
   })
+  document.querySelectorAll("[data-action=download-attachment]").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const msgs = await storage.getMessages(state.currentConvId);
+      const msg = msgs.find(m => m.id === btn.dataset.id);
+      if (!msg || !msg.attachment) return;
+      const blob = new Blob([msg.attachment.content], { type: msg.attachment.type === "docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = msg.attachment.name; a.click();
+      URL.revokeObjectURL(url);
+    });
+  });
   document.querySelectorAll("[data-action=speak-msg]").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -918,10 +935,16 @@ async function sendMessage(userText) {
   const attachedFile = state.attachedFile;
   clearAttachment();
 
-  // Save user message
+  // Save user message (with attachment info if present)
   const vg = state.editingVersionGroup || null;
   const vi = state.nextVersionIndex || 0;
-  await storage.addMessage(state.currentConvId, "user", userContent, null, vg, vi);
+  const userMsg = await storage.addMessage(state.currentConvId, "user", userContent, null, vg, vi);
+  // Store attachment alongside the message if present
+  if (attachedFile) {
+    userMsg.attachment = { name: attachedFile.name, content: attachedFile.content, type: attachedFile.name.endsWith(".docx") ? "docx" : (attachedFile.name.endsWith(".md") ? "md" : "text") };
+    const msgStore = await storage._tx("messages", "readwrite");
+    await new Promise((res, rej) => { const r = msgStore.put(userMsg); r.onsuccess = res; r.onerror = rej; });
+  }
   state.editingVersionGroup = null;
   state.nextVersionIndex = 0;
   await renderMessages();
