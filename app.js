@@ -351,21 +351,34 @@ async function regenerateMessage(msgId) {
 
 
 function updateNavProgress() {
-  const track = $("navTrack");
+  // Ensure nav-progress elements exist (inject if needed)
+  let track = document.getElementById("navTrack");
+  if (!track) {
+    const nav = document.createElement("div");
+    nav.className = "nav-progress";
+    nav.id = "navProgress";
+    nav.innerHTML = '<div class="nav-progress-track" id="navTrack"></div><div class="nav-progress-tip" id="navTip" style="display:none"></div>';
+    const main = document.querySelector(".main");
+    if (main) main.appendChild(nav);
+    track = document.getElementById("navTrack");
+  }
+  
   const userMsgs = document.querySelectorAll(".message.user");
-  const container = $("chatArea");
+  const container = document.getElementById("chatArea");
   
   if (!state.currentConvId || userMsgs.length <= 1) {
     track.innerHTML = "";
-    $("navProgress").style.display = "none";
+    const navP = document.getElementById("navProgress");
+    if (navP) navP.style.display = "none";
     return;
   }
 
-  $("navProgress").style.display = "";
+  const navP = document.getElementById("navProgress");
+  if (navP) navP.style.display = "";
   const scrollH = container.scrollHeight;
   track.innerHTML = "";
   
-  userMsgs.forEach((msgEl, i) => {
+  userMsgs.forEach((msgEl) => {
     const dot = document.createElement("div");
     dot.className = "nav-progress-dot";
     const dotTop = (msgEl.offsetTop / scrollH) * 100;
@@ -373,19 +386,22 @@ function updateNavProgress() {
     dot.title = (msgEl.querySelector(".message-body")?.textContent || "").trim().slice(0, 40);
     
     dot.addEventListener("mouseenter", (e) => {
-      const tip = $("navTip");
+      const tip = document.getElementById("navTip");
+      if (!tip) return;
       tip.textContent = dot.title;
       tip.style.display = "block";
       tip.style.left = (e.clientX - 220) + "px";
       tip.style.top = (e.clientY - 30) + "px";
     });
     dot.addEventListener("mousemove", (e) => {
-      const tip = $("navTip");
+      const tip = document.getElementById("navTip");
+      if (!tip) return;
       tip.style.left = (e.clientX - 220) + "px";
       tip.style.top = (e.clientY - 30) + "px";
     });
     dot.addEventListener("mouseleave", () => {
-      $("navTip").style.display = "none";
+      const tip = document.getElementById("navTip");
+      if (tip) tip.style.display = "none";
     });
     dot.addEventListener("click", () => {
       msgEl.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -396,7 +412,6 @@ function updateNavProgress() {
     track.appendChild(dot);
   });
 }
-
 
 function checkAutoScroll() {
   const area = $("chatArea");
